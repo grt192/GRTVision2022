@@ -5,7 +5,7 @@ import cv2
 
 def main():
     # Get the video capture from input 0
-    capture = cv2.VideoCapture("/dev/video1")
+    capture = cv2.VideoCapture("/dev/video0")
 
     while True:
         # Capture a frame
@@ -14,7 +14,7 @@ def main():
         # Initalize the vision pipeline
         visionPipeline = LemonVisionGripPipeline()
 
-        if not frame:
+        if frame is None:
             print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
             continue
 
