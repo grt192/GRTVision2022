@@ -19,7 +19,7 @@ def main():
         visionPipeline = LemonVisionGripPipeline()
 
         if frame is None:
-            sleep(1000)
+            time.sleep(1000)
 
             print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
 
