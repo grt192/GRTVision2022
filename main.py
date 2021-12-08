@@ -4,8 +4,11 @@ from grip import LemonVisionGripPipeline
 import cv2
 
 def main():
+    input_port = 0
+    num_ports = 4
+
     # Get the video capture from input 0
-    capture = cv2.VideoCapture("/dev/video0")
+    capture = cv2.VideoCapture("/dev/video" + str(input_port))
 
     while True:
         # Capture a frame
@@ -15,7 +18,15 @@ def main():
         visionPipeline = LemonVisionGripPipeline()
 
         if frame is None:
+            sleep(1000)
+
             print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
+
+            # Try a different port
+            input_port = (++input_port) % num_ports
+            capture = cv2.VideoCapture("/dev/video" + str(input_port))
+            print("Trying /dev/video" + str(input_port))
+
             continue
 
         # Process the frame
