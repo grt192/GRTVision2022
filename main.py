@@ -2,6 +2,7 @@ from networktables import NetworkTables
 from grip import LemonVisionGripPipeline
 
 import cv2
+import time
 
 def main():
     input_port = 0
