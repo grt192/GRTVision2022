@@ -1,4 +1,5 @@
 import cv2
+import time
 
 # Rotate through the 4 USB ports until camera frames are obtained
 input_port = 0
@@ -24,49 +25,10 @@ while img is None:
     _, img = cap.read()
     print("Trying /dev/video" + str(input_port))
 
-# Begin calibration
+# Display stream
 while cap.isOpened():
     _, img = cap.read()
     cv2.imshow('orig',img)
-
-    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-    # Find the chessboard corners
-    ret, corners = cv2.findChessboardCorners(gray, (9,6),None)
-
-    # If found, add object points, image points (after refining them)
-    if ret:
-        objpoints.append(objp)
-
-        corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-        imgpoints.append(corners2)
-
-        # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (9,6), corners2,ret)
-        cv2.imshow('img',img)
-
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-        break
-
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-print(mtx, dist)
-
-cv2.destroyAllWindows()
-
-_, img = cap.read()
-h,  w = img.shape[:2]
-newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
-print(newcameramtx)
-
-while cap.isOpened():
-    _, img = cap.read()
-    # Undistort
-    dst = cv2.undistort(img, newcameramtx, dist, None, newcameramtx)
-
-    # Crop the image
-    x,y,w,h = roi
-    dst = dst[y:y+h, x:x+w]
-    cv2.imshow('new',dst)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
