@@ -56,6 +56,9 @@ def main():
         sd.putNumberArray('xCentroids', xCentroids)
         sd.putNumberArray('yCentroids', yCentroids)
 
+        # Put test value in NT
+        sd.putString('test', 'hello here is a test str value')
+
 @staticmethod
 def publish_nt(blob_input):
     print("Beginning to publish to NetworkTables\n")
