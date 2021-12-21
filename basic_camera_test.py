@@ -1,26 +1,18 @@
-# Credit: 13Ducks on GitHub; modifications for running on Jetson
-
-import numpy as np
 import cv2
-import time
-
-# Calibration termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-# Prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((6*9,3), np.float32)
-objp[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
-
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
 
 # Rotate through the 4 USB ports until camera frames are obtained
 input_port = 0
 num_ports = 4
 
-cap = cv2.VideoCapture("/dev/video" + str(input_port))
-_, img = cap.read()
+cap = None
+img = None
+
+g_str = ('gst-launch-1.0 -v v4l2src device=/dev/video{} !'
+         'jpegdec !'
+         'video/x-raw, framerate=(fraction){}/1, width=(int){}, height=(int){} !'
+         'videoconvert !'
+         'nvoverlaysink')
+
 while img is None:
     time.sleep(1)
 
@@ -28,7 +20,7 @@ while img is None:
 
     # Try a different port
     input_port = (input_port + 1) % num_ports
-    cap = cv2.VideoCapture("/dev/video" + str(input_port))
+    cap = cv2.VideoCapture(g_str.format(input_port, 30, 1920, 1080), cv2.CAP_GSTREAMER)
     _, img = cap.read()
     print("Trying /dev/video" + str(input_port))
 

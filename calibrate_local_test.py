@@ -19,18 +19,7 @@ imgpoints = [] # 2d points in image plane.
 input_port = 0
 num_ports = 4
 
-cap = cv2.VideoCapture("/dev/video" + str(input_port))
-_, img = cap.read()
-while img is None:
-    time.sleep(1)
-
-    print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
-
-    # Try a different port
-    input_port = (input_port + 1) % num_ports
-    cap = cv2.VideoCapture("/dev/video" + str(input_port))
-    _, img = cap.read()
-    print("Trying /dev/video" + str(input_port))
+cap = cv2.VideoCapture(0)
 
 # Begin calibration
 while cap.isOpened():
