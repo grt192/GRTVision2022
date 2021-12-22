@@ -8,27 +8,31 @@ def main():
     input_port = 0
     num_ports = 4
 
-    # Get the video capture from input 0
-    capture = cv2.VideoCapture("/dev/video" + str(input_port))
+    # Create a video capture
+    cap = cv2.VideoCapture(input_port)
+    _, frame = cap.read()
 
+    # Keep trying until image is obtained
+    while frame is None:
+
+        print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
+
+        # Try a different port
+        input_port = (input_port + 1) % num_ports
+        cap = cv2.VideoCapture(input_port)
+        _, frame = cap.read()
+
+        print("Trying /dev/video" + str(input_port))
+
+        time.sleep(1)
+
+    # Run the pipeline on the video stream
     while True:
-        # Capture a frame
-        ret, frame = capture.read()
+
+        _, frame = cap.read()
 
         # Initalize the vision pipeline
         visionPipeline = LemonVisionGripPipeline()
-
-        if frame is None:
-            time.sleep(1)
-
-            print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
-
-            # Try a different port
-            input_port = (input_port + 1) % num_ports
-            capture = cv2.VideoCapture("/dev/video" + str(input_port))
-            print("Trying /dev/video" + str(input_port))
-
-            continue
 
         # Process the frame
         visionPipeline.process(frame)
@@ -58,19 +62,6 @@ def main():
 
         # Put test value in NT
         sd.putString('test', 'hello here is a test str value')
-
-@staticmethod
-def publish_nt(blob_input):
-    print("Beginning to publish to NetworkTables\n")
-
-    print(blob_input[0])
-
-    NetworkTables.initialize(server='roborio-192-frc.local')
-
-    sd = NetworkTables.getTable('jetson')
-
-    sd.putNumber('someNumber', 1234)
-    # otherNumber = sd.getNumber('otherNumber')
 
 if __name__ == "__main__":
     print("MAIN")

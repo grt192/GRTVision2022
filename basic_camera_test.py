@@ -8,22 +8,18 @@ num_ports = 4
 cap = None
 img = None
 
-g_str = ('gst-launch-1.0 -v v4l2src device=/dev/video{} !'
-         'jpegdec !'
-         'video/x-raw, framerate=(fraction){}/1, width=(int){}, height=(int){} !'
-         'videoconvert !'
-         'nvoverlaysink')
-
 while img is None:
     time.sleep(1)
 
     print("Error: No image to process. Cannot run vision pipeline. Are images being captured from the camera?")
 
-    # Try a different port
-    input_port = (input_port + 1) % num_ports
-    cap = cv2.VideoCapture(g_str.format(input_port, 30, 1920, 1080), cv2.CAP_GSTREAMER)
+    # Try to read the video stream
+    cap = cv2.VideoCapture(input_port)
     _, img = cap.read()
     print("Trying /dev/video" + str(input_port))
+
+    # Try the next port
+    input_port = (input_port + 1) % num_ports
 
 # Display stream
 while cap.isOpened():
