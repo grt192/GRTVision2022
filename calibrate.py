@@ -1,4 +1,5 @@
 # Credit: 13Ducks on GitHub; modifications for running on Jetson
+# calibrate.py should be run on your PC (not the Jetson); use the relevant USB camera and save the outputted matrices
 
 import numpy as np
 import cv2
