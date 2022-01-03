@@ -3,6 +3,7 @@ from grip import LemonVisionGripPipeline
 
 import cv2
 import time
+import math
 
 def main():
     input_port = 0
@@ -62,6 +63,18 @@ def main():
 
         # Put test value in NT
         sd.putString('test', 'hello here is a test str value')
+
+def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
+    cx = frame_width / 2 - 0.5
+    cy = frame_height / 2 - 0.5
+
+    fx = 500.561894 # in pixels
+
+    pitch_angle = math.atan(y_cam_coord - cy) / fx
+    yaw_angle = math.atan(x_cam_coord - cx) / fx
+
+    print("pitch angle: " + str(pitch_angle))
+    print("yaw angle: " + str(yaw_angle))
 
 if __name__ == "__main__":
     print("MAIN")
