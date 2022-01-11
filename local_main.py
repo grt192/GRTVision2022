@@ -1,4 +1,3 @@
-from networktables import NetworkTables
 from red_contour_grip import RedContoursPipeline
 
 import config
@@ -6,31 +5,6 @@ import config
 import cv2
 import time
 import math
-import threading
-
-# Start thread to connect to NetworkTables
-cond = threading.Condition()
-notified = [False]
-
-def connectionListener(connected, info):
-    print(info, '; Connected=%s' % connected)
-    with cond:
-        notified[0] = True
-        cond.notify()
-
-# Use RoboRIO static IP address
-NetworkTables.initialize(server=config.nt_ip) # Don't use 'roborio-192-frc.local'. https://robotpy.readthedocs.io/en/stable/guide/nt.html#networktables-guide
-NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
-
-with cond:
-    print("Waiting")
-    if not notified[0]:
-        cond.wait()
-
-print("Connected to NetworkTables!")
-
-# Initialize Jetson NetworkTable
-jetson = NetworkTables.getTable(config.nt_name)
 
 def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
     cx = frame_width / 2 - 0.5
@@ -38,6 +12,9 @@ def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
 
     pitch_angle = math.atan(y_cam_coord - cy) / config.focal_len
     yaw_angle = math.atan(x_cam_coord - cx) / config.focal_len
+
+    #print("pitch angle: " + str(pitch_angle))
+    #print("yaw angle: " + str(yaw_angle))
 
     return pitch_angle, yaw_angle
 
@@ -74,9 +51,6 @@ while frame is None:
 
 # Put image width and height on table
 h, w, _ = frame.shape
-
-jetson.putNumber('frame_width', w)
-jetson.putNumber('frame_height', h)
 
 # Run the pipeline on the video stream
 while True:
@@ -125,18 +99,7 @@ while True:
         
         print("pitch: " + str(pitch_angle) + "; yaw: " + str(yaw_angle))
 
-        # Publish data on NetworkTables
-        jetson = NetworkTables.getTable('jetson')
+    cv2.imshow('image', frame)
 
-        jetson.putNumber('xCentroid', x)
-        jetson.putNumber('yCentroid', y)
-        jetson.putNumber('pitchAngle', pitch_angle)
-        jetson.putNumber('yawAngle', yaw_angle)
-
-    # cv2.imshow('image', frame)
-
-    # Put test value in NT
-    jetson.putString('test', 'hello here is a test str value')
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1000) & 0xFF == ord('q'):
         break

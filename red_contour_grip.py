@@ -19,8 +19,8 @@ class RedContoursPipeline:
 
         self.__hsv_threshold_input = self.blur_output
         self.__hsv_threshold_hue = [0.0, 11.058020477815704]
-        self.__hsv_threshold_saturation = [61.915467625899275, 255.0]
-        self.__hsv_threshold_value = [48.156474820143885, 255.0]
+        self.__hsv_threshold_saturation = [70, 255.0]
+        self.__hsv_threshold_value = [100, 255.0]
 
         self.hsv_threshold_output = None
 
