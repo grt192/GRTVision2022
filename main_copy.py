@@ -1,6 +1,5 @@
 from networktables import NetworkTables
-from grip import LemonVisionGripPipeline
-from red_grip import RedBlobPipeline
+from red_contour_grip import RedContoursPipeline
 
 import config
 
@@ -22,6 +21,13 @@ def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
 
     return pitch_angle, yaw_angle
 
+def calc_contours(i):
+    M = cv2.moments(i)
+    if M['m00'] != 0:
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+
+    return cx,cy
 
 # Start thread to connect to NetworkTables
 cond = threading.Condition()
@@ -91,14 +97,14 @@ while True:
 
 
     # Process frame
-    visionPipeline = RedBlobPipeline() # LemonVisionGripPipeline()
+    visionPipeline = RedContoursPipeline() # LemonVisionGripPipeline()
     visionPipeline.process(frame)
 
 
     # Retrieve the blobs from the pipeline
-    blobs = visionPipeline.find_blobs_output # tuple of KeyPoint objects
+    contours = visionPipeline.filter_contours_output # tuple of KeyPoint objects
 
-    print(str(len(blobs)) + " blobs detected")
+    print(str(len(contours)) + " blobs detected")
 
     xCentroids = []
     yCentroids = []
@@ -106,16 +112,13 @@ while True:
     yawAngles = []
 
     # Append the centroid of blobs to the output array
-    for i in range(len(blobs)):
-        x, y = blobs[i].pt
+    for i in range(len(contours)):
+        x, y = calc_contours(contours[i])
         x= int(x)
         y=int(y)
-        xCentroids.append(x)
-        yCentroids.append(y)
-
+        
         cv2.line(frame, (int(x) - config.line_length, int(y)), (x+config.line_length, y), (0, 0, 255), 2)
         cv2.line(frame, (x, y - config.line_length), (x, y+config.line_length), (0, 0, 255), 2)
-
 
         pitch_angle, yaw_angle = calculate_coords(w, h, x, y)
         pitchAngles.append(pitch_angle)
