@@ -5,13 +5,12 @@ import config
 import cv2
 import time
 import math
+import numpy
 
-def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
-    cx = frame_width / 2 - 0.5
-    cy = frame_height / 2 - 0.5
+def calculate_coords(u, v):
 
-    pitch_angle = math.atan(y_cam_coord - cy) / config.focal_len
-    yaw_angle = math.atan(x_cam_coord - cx) / config.focal_len
+    yaw_angle = math.degrees(math.atan((u - config.cx) / config.focal_x))
+    pitch_angle = -math.degrees(math.atan((v - config.cy) / config.focal_y))
 
     #print("pitch angle: " + str(pitch_angle))
     #print("yaw angle: " + str(yaw_angle))
@@ -29,7 +28,7 @@ def calc_contours(c):
 input_port = 0
 num_ports = 4
 
-cap = cv2.VideoCapture(input_port)
+cap = cv2.VideoCapture(1)
 _, frame = cap.read()
 
 # Keep trying until image is obtained
@@ -88,15 +87,19 @@ while True:
         x = int(x)
         y = int(y)
         
-        cv2.line(frame, (x - config.line_length, y), (x + config.line_length, y), (0, 0, 255), 2)
-        cv2.line(frame, (x, y - config.line_length), (x, y + config.line_length), (0, 0, 255), 2)
+        cv2.line(frame, (x - config.center_line_length, y), (x + config.center_line_length, y), config.color, config.line_thickness)
+        cv2.line(frame, (x, y - config.center_line_length), (x, y + config.center_line_length), config.color, config.line_thickness)
 
-        temp = cv2.drawContours(frame, contours, largest_contour_idx, (0, 0, 255), 2, cv2.LINE_8, maxLevel=0)
+        temp = cv2.drawContours(frame, contours, largest_contour_idx, config.color, config.line_thickness, cv2.LINE_8, maxLevel=0)
         frame = temp
 
         # Calculate angle to target
-        pitch_angle, yaw_angle = calculate_coords(w, h, x, y)
+        pitch_angle, yaw_angle = calculate_coords(x, y)
+
+        temp = cv2.putText(frame, "(" + str(x) + ", " + str(y) + ")", (x + config.text_offset, y - config.text_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.5, config.color, config.line_thickness)
+        frame = temp
         
+        print("x: " + str(x) + "; y: " + str(y))
         print("pitch: " + str(pitch_angle) + "; yaw: " + str(yaw_angle))
 
     cv2.imshow('image', frame)
