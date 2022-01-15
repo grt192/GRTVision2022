@@ -1,16 +1,17 @@
-from networktables import NetworkTables
-from red_contour_grip import RedContoursPipeline
-
-import config
-
-import cv2
-import time
 import math
 import threading
+import time
+
+import cv2
+from networktables import NetworkTables
+
+import config as config
+from consumers.red_contour_grip import RedContoursPipeline
 
 # Start thread to connect to NetworkTables
 cond = threading.Condition()
 notified = [False]
+
 
 def connectionListener(connected, info):
     print(info, '; Connected=%s' % connected)
@@ -18,8 +19,10 @@ def connectionListener(connected, info):
         notified[0] = True
         cond.notify()
 
+
 # Use RoboRIO static IP address
-NetworkTables.initialize(server=config.nt_ip) # Don't use 'roborio-192-frc.local'. https://robotpy.readthedocs.io/en/stable/guide/nt.html#networktables-guide
+# Don't use 'roborio-192-frc.local'. https://robotpy.readthedocs.io/en/stable/guide/nt.html#networktables-guide
+NetworkTables.initialize(server=config.nt_ip)
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 
 with cond:
@@ -32,6 +35,7 @@ print("Connected to NetworkTables!")
 # Initialize Jetson NetworkTable
 jetson = NetworkTables.getTable(config.nt_name)
 
+
 def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
     cx = frame_width / 2 - 0.5
     cy = frame_height / 2 - 0.5
@@ -41,13 +45,15 @@ def calculate_coords(frame_width, frame_height, x_cam_coord, y_cam_coord):
 
     return pitch_angle, yaw_angle
 
+
 def calc_contours(c):
     M = cv2.moments(c)
     if M['m00'] != 0:
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
 
-    return cx,cy
+    return cx, cy
+
 
 input_port = 0
 num_ports = 4
@@ -87,23 +93,24 @@ while True:
         continue
 
     # Undistort the frame
-    temp = cv2.undistort(frame, config.cameramtx, config.dist, None, config.newcameramtx)
+    temp = cv2.undistort(frame, config.cameramtx,
+                         config.dist, None, config.newcameramtx)
     # TODO Crop the frame using roi
     frame = temp
 
     # Process frame
-    visionPipeline = RedContoursPipeline() # LemonVisionGripPipeline()
+    visionPipeline = RedContoursPipeline()  # LemonVisionGripPipeline()
     visionPipeline.process(frame)
 
     # Retrieve the blobs from the pipeline
-    contours = visionPipeline.filter_contours_output # tuple of KeyPoint objects
+    contours = visionPipeline.filter_contours_output  # tuple of KeyPoint objects
 
     print(str(len(contours)) + " blobs detected")
 
     if len(contours) > 0:
         # Find largest contour
         largest_contour = []
-        largest_contour_idx = 0 
+        largest_contour_idx = 0
         for i in range(len(contours)):
             if (len(contours[i]) > len(largest_contour)):
                 largest_contour = contours[i]
@@ -113,16 +120,19 @@ while True:
         x, y = calc_contours(largest_contour)
         x = int(x)
         y = int(y)
-        
-        cv2.line(frame, (x - config.line_length, y), (x + config.line_length, y), (0, 0, 255), 2)
-        cv2.line(frame, (x, y - config.line_length), (x, y + config.line_length), (0, 0, 255), 2)
 
-        temp = cv2.drawContours(frame, contours, largest_contour_idx, (0, 0, 255), 2, cv2.LINE_8, maxLevel=0)
+        cv2.line(frame, (x - config.line_length, y),
+                 (x + config.line_length, y), (0, 0, 255), 2)
+        cv2.line(frame, (x, y - config.line_length),
+                 (x, y + config.line_length), (0, 0, 255), 2)
+
+        temp = cv2.drawContours(
+            frame, contours, largest_contour_idx, (0, 0, 255), 2, cv2.LINE_8, maxLevel=0)
         frame = temp
 
         # Calculate angle to target
         pitch_angle, yaw_angle = calculate_coords(w, h, x, y)
-        
+
         print("pitch: " + str(pitch_angle) + "; yaw: " + str(yaw_angle))
 
         # Publish data on NetworkTables

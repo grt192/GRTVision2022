@@ -1,7 +1,7 @@
 import cv2
 import math
 
-import config
+import config as config
 
 def calculate_angles(frame_width, frame_height, u, v):
 
