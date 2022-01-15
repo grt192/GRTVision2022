@@ -1,4 +1,5 @@
 from asyncio import current_task
+from doctest import Example
 import time
 from typing import Type
 from unicodedata import name
@@ -106,8 +107,8 @@ class Pipeline:
                                     break # no sense processing a non-existent frame
 
                                 frame_obj = frame
-                            else:
-                                if frame is None:
+                            else: # we've already gotten a frame from this camera this iteration
+                                if frame is None: # the consumer doesn't have a pre-allocated frame obj yet
                                     frame = np.copy(frame_obj)
                                 else:
                                     np.copyto(frame, frame_obj)
@@ -122,12 +123,14 @@ class Pipeline:
                                 stream.putFrame(to_stream)
                             else:
                                 print(to_stream.shape)
-                                cv2.imshow(consumer.get_name(), to_stream)
-                                cv2.waitKey(1)
+                                cv2.namedWindow(consumer.get_name())
+                                cv2.imshow(consumer.get_name(), to_stream) # TODO remove this when we don't need streams anymore
 
                             tpl[2] = current_time
 
                 last_tick = current_time
+
+                cv2.waitKey(1) # TODO remove this when we don't need streams anymore
 
     def send_to_network_table(self, data):
         if not self.connect:
@@ -139,6 +142,6 @@ class Pipeline:
 
 
 if __name__ == '__main__':
-    pipeline = Pipeline([ExampleConsumer()])
+    pipeline = Pipeline([ExampleConsumer((300, 300), '0'), ExampleConsumer((200, 400), '1')])
 
     pipeline.start()
