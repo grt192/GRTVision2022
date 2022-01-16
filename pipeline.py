@@ -177,8 +177,21 @@ class Pipeline:
             return
 
         for key, item in data.items():
-            # TODO this probably isn't good
-            self.network_table.putValue(key, item)
+            # https://robotpy.readthedocs.io/projects/pynetworktables/en/stable/api.html#networktables.NetworkTable.putValue
+            # if list, check type and put array in NT
+            if isinstance(item, list) or isinstance(item, tuple):
+                if len(list) > 0:
+                    if isinstance(item[0], bool):
+                        self.network_table.putBooleanArray(key, item)
+                    elif isinstance(item[0], int) or isinstance(item[0], float):
+                        self.network_table.putNumberArray(key, item)
+                    elif isinstance(item[0], str):
+                        self.network_table.putStringArray(key, item)
+                    else:
+                        self.network_table.putRaw(key, item)
+            else:
+                # if not a list, put value and let NT auto-detect type
+                self.network_table.putValue(key, item)
 
 if __name__ == '__main__':
 
