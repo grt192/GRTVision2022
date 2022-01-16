@@ -28,3 +28,6 @@ def draw_center_point(frame, x, y):
 def draw_text(frame, x, y, text):
     temp = cv2.putText(frame, text, (x + config.text_offset, y - config.text_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.5, config.color, config.line_thickness)
     frame = temp
+
+def draw_contour(frame, contours, contour_idx):
+    cv2.drawContours(frame, contours, contour_idx, config.color, config.line_thickness, cv2.LINE_8, maxLevel=0)

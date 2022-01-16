@@ -13,10 +13,6 @@ focal_y = newcameramtx[1][1]
 cx = newcameramtx[0][2]
 cy = newcameramtx[1][2] 
 
-nt_ip = '10.1.92.2'
-
-nt_name = 'jetson'
-
 # Constants for drawing on image
 line_thickness = 1
 center_line_length = 3

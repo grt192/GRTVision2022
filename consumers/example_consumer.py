@@ -1,6 +1,3 @@
-from re import I
-import time
-
 import cv2
 import numpy as np
 
@@ -19,7 +16,7 @@ class ExampleConsumer(ConsumerInterface):
         else:
             np.copyto(self.stream, frame)
 
-        self.stream = cv2.circle(self.stream, self.center, 100, (0, 0, 255), 5)
+        cv2.circle(self.stream, self.center, 100, (0, 0, 255), 5)
 
         return (self.stream, {'test': 'test!'})
 
