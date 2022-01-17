@@ -1,4 +1,5 @@
 import threading
+from cscore import CameraServer
 from pipeline import Pipeline
 
 from consumers.example_consumer import ExampleConsumer
