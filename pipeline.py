@@ -42,7 +42,7 @@ class Pipeline:
         self.network_table = network_table
 
         if self.connect:
-            from cscore import CameraServer
+            from cscore import CameraServer, MjpegServer, CvSource, VideoMode.PixelFormat
 
             cam_server = CameraServer.getInstance()
 
@@ -74,6 +74,8 @@ class Pipeline:
         '''
         self.cameras = {}
 
+        port = 1182
+
         for consumer in in_consumers:
             if not isinstance(consumer, ConsumerInterface):
                 raise TypeError(
@@ -82,8 +84,11 @@ class Pipeline:
             # if we're connected to a roborio (eg not running locally)
             # start streams for each consumer
             if self.connect:
-                stream = cam_server.putVideo(
-                    consumer.get_name(), consumer.stream_res()[0], consumer.stream_res()[1])
+
+                stream = MjpegServer(consumer.get_name(), port)
+                source = CvSource(consumer.get_name(), VideoMode.PixelFormat.kMjpeg, consumer.stream_res()[0], consumer.stream_res()[1], consumer.fps())
+                stream.setSource(source)
+                port += 1
             else:
                 stream = None
 
@@ -98,9 +103,6 @@ class Pipeline:
             existing_camera = self.cameras.get(consumer.device_num())
             if existing_camera is None:
                 camera = cv2.VideoCapture(consumer.device_num())
-
-                print(str(consumer.device_num()) + str(camera is None))
-
                 self.cameras[consumer.device_num()] = (camera, [consumer_dict])
             else:
                 existing_camera[1].append(consumer_dict)

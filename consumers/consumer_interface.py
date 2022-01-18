@@ -12,6 +12,9 @@ class ConsumerInterface:
     def process_interval(self):
         return 1000
 
+    def fps(self):
+        return 1 / (process_interval / 1000)
+
     def stream_res(self):
         return (640, 360)
 
