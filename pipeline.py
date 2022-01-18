@@ -99,6 +99,8 @@ class Pipeline:
             if existing_camera is None:
                 camera = cv2.VideoCapture(consumer.device_num())
 
+                print(str(consumer.device_num()) + str(camera is None))
+
                 self.cameras[consumer.device_num()] = (camera, [consumer_dict])
             else:
                 existing_camera[1].append(consumer_dict)
@@ -139,7 +141,12 @@ class Pipeline:
                                     ret, img = capture.read(consumer_dict['frame'])
 
                                 if ret is False:  # we got no frames
-                                    print('empty frame?')
+                                    print('Empty frame -- trying to open the video capture again')
+                                                        
+                                    camera = cv2.VideoCapture(consumer.device_num())
+                                    existing_consumers = self.cameras[consumer.device_num()][1]
+                                    self.cameras[consumer.device_num()] = (camera, existing_consumers)
+
                                     break  # no sense processing a non-existent frame
 
                                 # update our reference to match the latest frame

@@ -20,5 +20,8 @@ class ExampleConsumer(ConsumerInterface):
 
         return (self.stream, {'test': 'test!'})
 
+    def device_num(self):
+        return 0
+
     def get_name(self):
         return self.name

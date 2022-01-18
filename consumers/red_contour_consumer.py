@@ -71,3 +71,6 @@ class RedContourConsumer(ConsumerInterface):
 
     def get_name(self):
         return self.name
+
+    def device_num(self):
+        return 0
