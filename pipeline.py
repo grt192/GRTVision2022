@@ -42,7 +42,7 @@ class Pipeline:
         self.network_table = network_table
 
         if self.connect:
-            from cscore import CameraServer, MjpegServer, CvSource, VideoMode.PixelFormat
+            from cscore import CameraServer, MjpegServer, CvSource, VideoMode
 
             cam_server = CameraServer.getInstance()
 
@@ -84,11 +84,16 @@ class Pipeline:
             # if we're connected to a roborio (eg not running locally)
             # start streams for each consumer
             if self.connect:
+                print('Attempting add a MjpegServer with name ' + consumer.get_name())
 
-                stream = MjpegServer(consumer.get_name(), port)
-                source = CvSource(consumer.get_name(), VideoMode.PixelFormat.kMjpeg, consumer.stream_res()[0], consumer.stream_res()[1], consumer.fps())
+                # add mjpegserver to the cameraserver
+                # access at address mjpg:http://10.1.92.94:1181/?action=stream
+                stream = cam_server.addServer(consumer.get_name())
+                source = CvSource(consumer.get_name(), VideoMode.PixelFormat.kMJPEG, consumer.stream_res()[0], consumer.stream_res()[1], consumer.fps())
                 stream.setSource(source)
-                port += 1
+
+                print('Completed attempt to add server with name ' + consumer.get_name() + ' at port ' + str(stream.getPort()))
+                
             else:
                 stream = None
 
@@ -102,7 +107,12 @@ class Pipeline:
             # look to see if we've already inited a cam for this device num
             existing_camera = self.cameras.get(consumer.device_num())
             if existing_camera is None:
-                camera = cv2.VideoCapture(consumer.device_num())
+
+                if self.connect:
+                    camera = cv2.VideoCapture(consumer.device_num(), cv2.CAP_V4L2)
+                else:
+                    camera = cv2.VideoCapture(consumer.device_num())
+
                 self.cameras[consumer.device_num()] = (camera, [consumer_dict])
             else:
                 existing_camera[1].append(consumer_dict)
@@ -144,8 +154,12 @@ class Pipeline:
 
                                 if ret is False:  # we got no frames
                                     print('Empty frame -- trying to open the video capture again')
-                                                        
-                                    camera = cv2.VideoCapture(consumer.device_num())
+                                    
+                                    if self.connect:
+                                        camera = cv2.VideoCapture(consumer.device_num(), cv2.CAP_V4L2)
+                                    else:
+                                        camera = cv2.VideoCapture(consumer.device_num())
+                                    
                                     existing_consumers = self.cameras[consumer.device_num()][1]
                                     self.cameras[consumer.device_num()] = (camera, existing_consumers)
 
