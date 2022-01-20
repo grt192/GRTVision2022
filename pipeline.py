@@ -45,6 +45,7 @@ class Pipeline:
             from cscore import CameraServer, MjpegServer, CvSource, VideoMode
 
             cam_server = CameraServer.getInstance()
+            cam_server.enableLogging()
 
         '''
         store all our cameras in a dictionary. 
@@ -92,6 +93,7 @@ class Pipeline:
                 print('Completed attempt to add server with name ' + consumer.get_name() + ' at port ' + str(server.getPort()))
                 stream = CvSource(consumer.get_name(), VideoMode.PixelFormat.kMJPEG, consumer.stream_res()[0], consumer.stream_res()[1], consumer.fps())
                 server.setSource(stream)
+                print('CvSource has been set for server ' + consumer.get_name() + ' at port ' + str(server.getPort()))
                 
             else:
                 stream = None
@@ -152,6 +154,7 @@ class Pipeline:
                                     ret, img = capture.read(consumer_dict['frame'])
 
                                 if ret is False:  # we got no frames
+                                    print('From server: ' + consumer.get_name())
                                     print('Empty frame -- trying to open the video capture again')
                                     
                                     if self.connect:

@@ -38,9 +38,12 @@ def connect():
 
 roborio = connect()
 
-# Initialize pipeline with network table
-pipeline = Pipeline([ExampleConsumer((300, 300), '0'),
-                        ExampleConsumer((200, 400), '1')],
+try:
+    # Initialize pipeline with network table
+    pipeline = Pipeline([ExampleConsumer((300, 300), '0')],
+                        # ExampleConsumer((200, 400), '1')],
                         network_table=roborio)
-
-pipeline.start()
+    
+    pipeline.start()
+except KeyboardInterrupt:
+    del pipeline
