@@ -1,10 +1,11 @@
 import threading
+import logging
+import subprocess
 from pipeline import Pipeline
-
 from consumers.example_consumer import ExampleConsumer
 
-import logging
 logging.basicConfig(level=logging.DEBUG)
+
 
 # connect to NetworkTables
 def connect():
@@ -39,11 +40,17 @@ def connect():
 roborio = connect()
 
 try:
+    consumers = [ExampleConsumer((300, 300), '0')]
     # Initialize pipeline with network table
-    pipeline = Pipeline([ExampleConsumer((300, 300), '0')],
+    pipeline = Pipeline(consumers,
                         # ExampleConsumer((200, 400), '1')],
                         network_table=roborio)
-    
     pipeline.start()
+
 except KeyboardInterrupt:
+    print('main.py KeyboardInterrupt... destructing pipeline + other things')
+    
+    # close TCP ports
+    subprocess.run(['/close_port.sh', "1181 " + str(len(consumers))])
+
     del pipeline
