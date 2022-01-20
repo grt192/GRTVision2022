@@ -88,11 +88,10 @@ class Pipeline:
 
                 # add mjpegserver to the cameraserver
                 # access at address mjpg:http://10.1.92.94:1181/?action=stream
-                stream = cam_server.addServer(consumer.get_name())
-                source = CvSource(consumer.get_name(), VideoMode.PixelFormat.kMJPEG, consumer.stream_res()[0], consumer.stream_res()[1], consumer.fps())
-                stream.setSource(source)
-
-                print('Completed attempt to add server with name ' + consumer.get_name() + ' at port ' + str(stream.getPort()))
+                server = cam_server.addServer(name=consumer.get_name())
+                print('Completed attempt to add server with name ' + consumer.get_name() + ' at port ' + str(server.getPort()))
+                stream = CvSource(consumer.get_name(), VideoMode.PixelFormat.kMJPEG, consumer.stream_res()[0], consumer.stream_res()[1], consumer.fps())
+                server.setSource(stream)
                 
             else:
                 stream = None
@@ -215,6 +214,11 @@ class Pipeline:
             else:
                 # if not a list, put value and let NT auto-detect type
                 self.network_table.putValue(key, item)
+
+    def __del__(self):
+        print("Deleting the pipeline")
+        for camera in self.cameras:
+            camera.release()
 
 if __name__ == '__main__':
 

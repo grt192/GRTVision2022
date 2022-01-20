@@ -3,6 +3,9 @@ from pipeline import Pipeline
 
 from consumers.example_consumer import ExampleConsumer
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 # connect to NetworkTables
 def connect():
 
