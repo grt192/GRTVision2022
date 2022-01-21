@@ -74,9 +74,7 @@ class Pipeline:
         Consumers should try to do the same.
         '''
         self.cameras = {}
-
-        port = 1182
-
+        
         for consumer in in_consumers:
             if not isinstance(consumer, ConsumerInterface):
                 raise TypeError(
@@ -154,7 +152,7 @@ class Pipeline:
                                     ret, img = capture.read(consumer_dict['frame'])
 
                                 if ret is False:  # we got no frames
-                                    print('From server: ' + consumer.get_name())
+                                    print('From server with name ' + consumer.get_name())
                                     print('Empty frame -- trying to open the video capture again')
                                     
                                     if self.connect:
