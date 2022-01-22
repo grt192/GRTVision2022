@@ -216,10 +216,6 @@ class Pipeline:
                 # if not a list, put value and let NT auto-detect type
                 self.network_table.putValue(key, item)
 
-    def __del__(self):
-        print("Deleting the pipeline")
-        for camera in self.cameras:
-            camera.release()
 
 if __name__ == '__main__':
 

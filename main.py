@@ -46,10 +46,5 @@ try:
                         # ExampleConsumer((200, 400), '1')],
                         network_table=roborio)
     pipeline.start()
-except KeyboardInterrupt:
-    print('main.py KeyboardInterrupt... destructing pipeline + other things')
-    
-    # close TCP ports
-    subprocess.run(['/close_port.sh', "1181 " + str(len(consumers))])
-
-    # del pipeline
+except KeyboardInterrupt: # Ctrl-C
+    print('main.py KeyboardInterrupt')
