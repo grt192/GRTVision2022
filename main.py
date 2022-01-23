@@ -1,13 +1,14 @@
 import threading
 import logging
 import subprocess
-from pipeline import Pipeline
-from consumers.example_consumer import ExampleConsumer
+from pipeline_runner import run_pipelines
+from pipelines.example_pipeline import ExamplePipeline
+from pipelines.example_pipeline2 import ExamplePipeline2
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-# connect to NetworkTables
+# Connect to NetworkTables
 def connect():
 
     from networktables import NetworkTables
@@ -15,7 +16,6 @@ def connect():
     # Start thread to connect to NetworkTables
     cond = threading.Condition()
     notified = [False]
-
 
     def connectionListener(connected, info):
         print(info, '; Connected=%s' % connected)
@@ -37,14 +37,9 @@ def connect():
 
     return NetworkTables.getTable('jetson')
 
+
 roborio = connect()
 
-try:
-    consumers = [ExampleConsumer((300, 300), '0')]
-    # Initialize pipeline with network table
-    pipeline = Pipeline(consumers,
-                        # ExampleConsumer((200, 400), '1')],
-                        network_table=roborio)
-    pipeline.start()
-except KeyboardInterrupt: # Ctrl-C
-    print('main.py KeyboardInterrupt')
+# Run the pipelines
+pipelines = [ExamplePipeline('0'), ExamplePipeline2('1')]
+run_pipelines(False, pipelines)
