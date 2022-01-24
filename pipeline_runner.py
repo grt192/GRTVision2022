@@ -1,12 +1,9 @@
-import threading
 from pipeline_thread import PipelineThread
 from pipelines.example_pipeline import ExamplePipeline
-from pipelines.example_pipeline2 import ExamplePipeline2
 
 
-def run_pipelines(is_local, pipelines):
-
-    for pipeline in pipelines:
+def run_pipelines(lines, is_local=False):
+    for pipeline in lines:
         # Create thread
         thread = PipelineThread(is_local, pipeline)
         thread.daemon = True
@@ -18,7 +15,8 @@ def run_pipelines(is_local, pipelines):
     except KeyboardInterrupt:
         print('Ending program...')
 
-if __name__ == '__main__':
-    pipelines = [ExamplePipeline('0'), ExamplePipeline2('1')]
-    run_pipelines(True, pipelines)
 
+# Local pipeline test without CameraServer or NetworkTables
+if __name__ == '__main__':
+    pipelines = [ExamplePipeline('0', 0), ExamplePipeline('1', 1)]
+    run_pipelines(pipelines, True)

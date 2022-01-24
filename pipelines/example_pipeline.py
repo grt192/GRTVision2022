@@ -3,10 +3,11 @@ from pipelines.pipeline_interface import PipelineInterface
 
 
 class ExamplePipeline(PipelineInterface):
-    def __init__(self, name='0'):
+    def __init__(self, name='0', device_num=0):
         self.name = name
         self.cap = self.get_capture()
         self.frame = None
+        self.device_num = device_num
 
     def process(self):
         error_msg = None
@@ -28,7 +29,7 @@ class ExamplePipeline(PipelineInterface):
         return {'test': 'test!'}
 
     def device_num(self):
-        return 0
+        return self.device_num
 
     def get_name(self):
         return self.name
