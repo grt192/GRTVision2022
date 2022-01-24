@@ -56,24 +56,22 @@ class PipelineThread(threading.Thread):
             # Process the next frame capture
             data, error_msg = self.pipeline.process()
             # If it doesn't work
-            if error_msg is not None:
+            if error_msg:
                 print('Frame could not be processed: ' + error_msg)
             # If frame could be processed
+            elif self.is_local:
+                # print(data)
+                cv2.imshow(self.pipeline.get_name(), self.pipeline.get_frame())
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
             else:
-                if self.is_local:
-                    # print(data)
-                    cv2.imshow(self.pipeline.get_name(), self.pipeline.get_frame())
+                # Send data to robot
+                send_to_network_table(self.roborio, data)
+                # Put frame on output stream
+                self.stream.putFrame(self.pipeline.get_frame())
 
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                else:
-                    # Send data to robot
-                    send_to_network_table(self.roborio, data)
-                    # Put frame on output stream
-                    self.stream.putFrame(self.pipeline.get_frame())
-
-                    # Sleep the thread
-                    time.sleep(0.001)
+                # Sleep the thread
+                time.sleep(0.001)
 
         print('Exiting thread running pipeline ' + self.pipeline.get_name())
-
