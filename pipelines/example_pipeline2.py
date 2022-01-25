@@ -5,10 +5,14 @@ from pipelines.pipeline_interface import PipelineInterface
 class ExamplePipeline2(PipelineInterface):
     def __init__(self, name='0'):
         self.name = name
-        self.cap = self.get_capture()
+        self.cap = None
         self.frame = None
 
     def process(self):
+        # Init capture if it's not initialized
+        if self.cap is None:
+            self.cap = self.get_capture()
+            
         error_msg = None
         ret, self.frame = self.cap.read()
 

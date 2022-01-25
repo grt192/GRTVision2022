@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import threading
 import logging
 import subprocess
@@ -40,6 +41,9 @@ def connect():
 
 roborio = connect()
 
+# Set up multiprocessing
+mp.set_start_method('fork')
+
 # Run the pipelines
 pipelines = [ExamplePipeline('0'), ExamplePipeline2('1')]
-run_pipelines(False, pipelines)
+run_pipelines(False, pipelines, roborio)
