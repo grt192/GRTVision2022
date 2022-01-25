@@ -2,7 +2,6 @@ import time
 import cv2
 import multiprocessing as mp
 from pipelines.example_pipeline import ExamplePipeline
-from pipelines.example_pipeline2 import ExamplePipeline2
 
 
 # Function to put values to NetworkTables
@@ -40,7 +39,7 @@ def pipeline_process(event, is_local, pipeline, roborio=None, cam_server=None):
         print('CvSource has been set for server ' + pipeline.get_name() + ' at port ' + str(server.getPort()))
 
 
-    print('Starting infinite loop running pipeline ' + pipeline.get_name())
+    print('Starting pipeline ' + pipeline.get_name())
 
     while not event.is_set():
         # Process the next frame capture
@@ -70,7 +69,7 @@ def pipeline_process(event, is_local, pipeline, roborio=None, cam_server=None):
     print('Exiting thread running pipeline ' + pipeline.get_name())
     
 
-def run_pipelines(is_local, pipelines, roborio=None):
+def run_pipelines(pipelines, is_local=True, roborio=None):
 
     # Initialize a CameraServer (used by all pipelines)
     cam_server = None
@@ -97,9 +96,9 @@ def run_pipelines(is_local, pipelines, roborio=None):
             print('Ending program...')
             break
 
-if __name__ == '__main__':
-    # Set process starting method (spawn is the only option for Windows)
-    mp.set_start_method('spawn')
-    pipelines = [ExamplePipeline('0'), ExamplePipeline2('1')]
-    run_pipelines(True, pipelines)
 
+# Local pipeline test without CameraServer or NetworkTables
+if __name__ == '__main__':
+    mp.set_start_method('spawn')
+    pipelines = [ExamplePipeline('0', 0), ExamplePipeline('1', 1)]
+    run_pipelines(pipelines)

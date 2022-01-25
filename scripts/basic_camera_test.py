@@ -24,7 +24,7 @@ while img is None:
 # Display stream
 while cap.isOpened():
     _, img = cap.read()
-    cv2.imshow('orig',img)
+    cv2.imshow('orig', img)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

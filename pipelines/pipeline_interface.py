@@ -3,7 +3,7 @@ import cv2
 
 class PipelineInterface:
     '''
-    Process a frame, returning a tuple: 
+    Process a frame, returning a tuple:
     (Adjusted frame to send to camera stream, {dictionary: fields to send to network tables})
     '''
     def process(self):
@@ -53,4 +53,3 @@ class PipelineInterface:
 
     def get_frame(self):
         return self.frame
-
