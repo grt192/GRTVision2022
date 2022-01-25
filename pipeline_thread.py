@@ -41,11 +41,11 @@ class PipelineThread(threading.Thread):
 
             # Add a camera server for the pipeline
             print('Attempting add a MjpegServer with name ' + pipeline.get_name())
-            server = cam_server.addServer(pipeline.get_name())
+            server = cam_server.addServer(name=pipeline.get_name())
             print('Completed attempt to add server with name ' + pipeline.get_name())
-            stream = CvSource(pipeline.get_name(), VideoMode.PixelFormat.kMJPEG, pipeline.get_resolution()[0], pipeline.get_resolution()[1], pipeline.get_fps())
+            stream = CvSource(pipeline.get_name(), VideoMode.PixelFormat.kMJPEG, pipeline.stream_res()[0], pipeline.stream_res()[1], pipeline.fps())
             server.setSource(stream)
-            print('CvSource has been set for server ' + pipeline.get_name() + ' at port ' + server.getPort())
+            print('CvSource has been set for server ' + pipeline.get_name() + ' at port ' + str(server.getPort()))
 
             self.stream = stream
 
