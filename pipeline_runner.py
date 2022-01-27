@@ -26,18 +26,7 @@ def send_to_network_table(roborio, data):
 
 
 # Function to run pipeline
-def pipeline_process(event, is_local, pipeline, roborio=None, cam_server=None):
-    
-    if not is_local:
-        from cscore import CvSource, VideoMode
-        # Add a camera server for the pipeline
-        print('Attempting add a MjpegServer with name ' + pipeline.get_name())
-        server = cam_server.addServer(name=pipeline.get_name())
-        print('Completed attempt to add server with name ' + pipeline.get_name())
-        stream = CvSource(pipeline.get_name(), VideoMode.PixelFormat.kMJPEG, pipeline.stream_res()[0], pipeline.stream_res()[1], pipeline.fps())
-        server.setSource(stream)
-        print('CvSource has been set for server ' + pipeline.get_name() + ' at port ' + str(server.getPort()))
-
+def pipeline_process(event, is_local, pipeline, roborio=None, stream=None):
 
     print('Starting pipeline ' + pipeline.get_name())
 
@@ -83,9 +72,23 @@ def run_pipelines(pipelines, is_local=True, roborio=None):
     event = mp.Event()
 
     for pipeline in pipelines:
+        # If Jetson, create camera servers
+        stream = None
+        if not is_local:
+            from cscore import CvSource, VideoMode
+            # Add a camera server for the pipeline
+            print('Attempting add a MjpegServer with name ' + pipeline.get_name())
+            server = cam_server.addServer(name=pipeline.get_name())
+            print('Completed attempt to add server with name ' + pipeline.get_name())
+            stream = CvSource(pipeline.get_name(), VideoMode.PixelFormat.kMJPEG, pipeline.stream_res()[0], pipeline.stream_res()[1], pipeline.fps())
+            server.setSource(stream)
+            print('CvSource has been set for server ' + pipeline.get_name() + ' at port ' + str(server.getPort()))
+
         # Create thread
-        process = mp.Process(target=pipeline_process, args=(event, is_local, pipeline, roborio, cam_server))
+        print('Creating thread')
+        process = mp.Process(target=pipeline_process, args=(event, is_local, pipeline, roborio, stream))
         process.start()
+        print('Finished creating thread')
 
     while True:
         try:
