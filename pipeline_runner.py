@@ -1,7 +1,9 @@
 import time
 import cv2
 import multiprocessing as mp
+from networktables import NetworkTable
 from pipelines.example_pipeline import ExamplePipeline
+from pipelines.pipeline_interface import PipelineInterface
 
 
 # Function to put values to NetworkTables
@@ -26,7 +28,7 @@ def send_to_network_table(roborio: NetworkTable, data: dict[str, any]):
 
 
 # Function to run pipeline
-def pipeline_process(event: Event, is_local: bool, pipeline: PipelineInterface, roborio=None, stream: CvSource=None):
+def pipeline_process(event: mp.Event, is_local: bool, pipeline: PipelineInterface, roborio=None, stream=None):
 
     print('Starting pipeline ' + pipeline.get_name())
 

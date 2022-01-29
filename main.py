@@ -19,7 +19,7 @@ def connect():
         with cond:
             notified[0] = True
             cond.notify()
-  
+
     # Use RoboRIO static IP address
     # Don't use 'roborio-192-frc.local'. https://robotpy.readthedocs.io/en/stable/guide/nt.html#networktables-guide
     NetworkTables.initialize(server='10.1.92.2')

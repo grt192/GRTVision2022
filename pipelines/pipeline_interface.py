@@ -2,6 +2,13 @@ import cv2
 
 
 class PipelineInterface:
+    def __init__(self, name='0', device_num=0, is_local=True):
+        self.name = name
+        self.cap = None
+        self.frame = None
+        self.device_num = device_num
+        self.is_local = is_local
+
     '''
     Process a frame, returning a tuple:
     (Adjusted frame to send to camera stream, {dictionary: fields to send to network tables})

@@ -4,11 +4,7 @@ from pipelines.pipeline_interface import PipelineInterface
 
 class ExamplePipeline(PipelineInterface):
     def __init__(self, name='0', device_num=0, is_local=True):
-        self.name = name
-        self.cap = None
-        self.frame = None
-        self.device_num = device_num
-        self.is_local = is_local
+        super().__init__(name, device_num, is_local)
 
     def process(self):
         # Initialize capture if necessary

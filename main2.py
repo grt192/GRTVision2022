@@ -1,6 +1,8 @@
 import cv2
 from cscore import CameraServer, CvSource, VideoMode
 import time
+from pipelines.example_pipeline import ExamplePipeline
+
 
 device_num = '/dev/cam/turret'
 server_name = 'generic server name'
@@ -22,7 +24,8 @@ for pipeline in pipelines:
     print('Attempting add a MjpegServer with name ' + pipeline.get_name())
     server = cam_server.addServer(name=pipeline.get_name())
     print('Completed attempt to add server with name ' + pipeline.get_name())
-    stream = CvSource(pipeline.server_name(), VideoMode.PixelFormat.kMJPEG, pipeline.stream_res()[0], pipeline.stream_res()[1], pipeline.fps())
+    stream = CvSource(pipeline.server_name(), VideoMode.PixelFormat.kMJPEG, pipeline.stream_res()[0],
+                      pipeline.stream_res()[1], pipeline.fps())
     server.setSource(stream)
     print('CvSource has been set for server ' + pipeline.server_name() + ' at port ' + str(server.getPort()))
 
