@@ -3,11 +3,12 @@ from pipelines.pipeline_interface import PipelineInterface
 
 
 class ExamplePipeline(PipelineInterface):
-    def __init__(self, name='0', device_num=0):
+    def __init__(self, name='0', device_num=0, is_local=True):
         self.name = name
         self.cap = None
         self.frame = None
         self.device_num = device_num
+        self.is_local = is_local
 
     def process(self):
         # Initialize capture if necessary
@@ -24,7 +25,7 @@ class ExamplePipeline(PipelineInterface):
         # If no frame was received, re-capture
         else:
             self.cap = self.get_capture()
-            error_msg = 'cannot get capture'
+            error_msg = 'cannot get capture ' + str(self.device_num)
 
         return {'test': 'test!'}, error_msg
 

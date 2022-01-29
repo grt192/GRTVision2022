@@ -41,6 +41,5 @@ roborio = connect()
 mp.set_start_method('fork')
 
 # Run the pipelines
-# pipelines = [ExamplePipeline('0', 0), ExamplePipeline('1', 1)]
-pipelines = [ExamplePipeline('0', '/dev/cam/turret'), ExamplePipeline('1', '/dev/cam/intake')]
+pipelines = [ExamplePipeline('0', '/dev/cam/turret', False), ExamplePipeline('1', '/dev/cam/intake', False)]
 run_pipelines(pipelines, False, roborio)

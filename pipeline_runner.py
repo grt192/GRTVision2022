@@ -36,6 +36,7 @@ def pipeline_process(event, is_local, pipeline, roborio=None, stream=None):
         # If it doesn't work
         if error_msg is not None:
             print('Frame could not be processed: ' + error_msg)
+
         # If frame could be processed
         else:
             if is_local:
@@ -47,13 +48,12 @@ def pipeline_process(event, is_local, pipeline, roborio=None, stream=None):
             # If not local (on Jetson)
             else:
                 # Send data to robot
-                send_to_network_table(roborio, data)
+                # send_to_network_table(roborio, data)
                 # Put frame on output stream
                 stream.putFrame(pipeline.get_frame())
 
-                # Sleep the thread
-                time.sleep(0.001)
-
+        time.sleep(0.001)
+        
     # If the "terminate" event is triggered, exit
     print('Exiting thread running pipeline ' + pipeline.get_name())
     

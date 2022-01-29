@@ -41,7 +41,11 @@ class PipelineInterface:
     Returns a VideoCapture with pipeline's device number and resolution.
     '''
     def get_capture(self):
-        cap = cv2.VideoCapture(self.get_device_num())
+        if self.is_local:
+            cap = cv2.VideoCapture(self.get_device_num())
+        else:
+            cap = cv2.VideoCapture(self.get_device_num(), cv2.CAP_V4L)
+
         # Set video resolution
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.stream_res()[0])
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.stream_res()[1])
