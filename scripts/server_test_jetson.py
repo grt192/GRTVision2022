@@ -14,7 +14,7 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, source_height)
 
 # Initialize a camera server
 cam_server = CameraServer.getInstance()
-feCamcam_server.enableLogging()
+cam_server.enableLogging()
 
 # Add a camera server for the pipeline
 print('Attempting add a MjpegServer with name ' + server_name)
