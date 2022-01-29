@@ -5,7 +5,7 @@ from pipelines.example_pipeline import ExamplePipeline
 
 
 # Function to put values to NetworkTables
-def send_to_network_table(roborio, data):
+def send_to_network_table(roborio: NetworkTable, data: dict[str, any]):
 
     for key, item in data.items():
         # https://robotpy.readthedocs.io/projects/pynetworktables/en/stable/api.html#networktables.NetworkTable.putValue
@@ -26,11 +26,12 @@ def send_to_network_table(roborio, data):
 
 
 # Function to run pipeline
-def pipeline_process(event, is_local, pipeline, roborio=None, stream=None):
+def pipeline_process(event: Event, is_local: bool, pipeline: PipelineInterface, roborio=None, stream: CvSource=None):
 
     print('Starting pipeline ' + pipeline.get_name())
 
     while not event.is_set():
+        print('lamoooooo')
         # Process the next frame capture
         data, error_msg = pipeline.process()
         # If it doesn't work
@@ -50,15 +51,17 @@ def pipeline_process(event, is_local, pipeline, roborio=None, stream=None):
                 # Send data to robot
                 # send_to_network_table(roborio, data)
                 # Put frame on output stream
+                #print(pipeline.get_frame())
+                print(stream)
                 stream.putFrame(pipeline.get_frame())
 
         time.sleep(0.001)
-        
+
     # If the "terminate" event is triggered, exit
     print('Exiting thread running pipeline ' + pipeline.get_name())
     
 
-def run_pipelines(pipelines, is_local=True, roborio=None):
+def run_pipelines(pipelines: list[PipelineInterface], is_local=True, roborio=None):
 
     # Initialize a CameraServer (used by all pipelines)
     cam_server = None

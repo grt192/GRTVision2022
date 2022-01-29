@@ -16,7 +16,8 @@ class ExamplePipeline(PipelineInterface):
             self.cap = self.get_capture()
 
         error_msg = None
-        ret, self.frame = self.cap.read()
+        ret, frame = self.cap.read()
+        self.frame = frame
 
         # If frame was received, process the frame 
         if ret:
