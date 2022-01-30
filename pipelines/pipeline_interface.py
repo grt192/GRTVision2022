@@ -1,8 +1,9 @@
+from typing import Union
 import cv2
 
 
 class PipelineInterface:
-    def __init__(self, name='0', device_num=0, is_local=True):
+    def __init__(self, name: str = '0', device_num: Union[int, str] = 0, is_local: bool = True):
         self.name = name
         self.cap = None
         self.frame = None
@@ -49,15 +50,13 @@ class PipelineInterface:
     '''
     def get_capture(self):
         if self.is_local:
-            cap = cv2.VideoCapture(self.get_device_num())
+            self.cap = cv2.VideoCapture(self.get_device_num())
         else:
-            cap = cv2.VideoCapture(self.get_device_num(), cv2.CAP_V4L)
+            self.cap = cv2.VideoCapture(self.get_device_num(), cv2.CAP_V4L)
 
         # Set video resolution
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.stream_res()[0])
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.stream_res()[1])
-
-        return cap
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.stream_res()[0])
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.stream_res()[1])
 
     def get_frame(self):
         return self.frame

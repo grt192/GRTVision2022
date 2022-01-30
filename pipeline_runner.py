@@ -7,7 +7,7 @@ from pipelines.pipeline_interface import PipelineInterface
 
 
 # Function to put values to NetworkTables
-def send_to_network_table(roborio: NetworkTable, data: dict[str, any]):
+def send_to_network_table(roborio: NetworkTable, data: dict):
 
     for key, item in data.items():
         # https://robotpy.readthedocs.io/projects/pynetworktables/en/stable/api.html#networktables.NetworkTable.putValue
@@ -28,12 +28,13 @@ def send_to_network_table(roborio: NetworkTable, data: dict[str, any]):
 
 
 # Function to run pipeline
-def pipeline_process(event: mp.Event, is_local: bool, pipeline: PipelineInterface, roborio=None, stream=None):
+def pipeline_process(event: mp.Event, is_local: bool, pipeline: PipelineInterface, roborio: NetworkTable = None,
+                     stream=None):
 
     print('Starting pipeline ' + pipeline.get_name())
 
     while not event.is_set():
-        print('lamoooooo')
+        print('lmaooooo')
         # Process the next frame capture
         data, error_msg = pipeline.process()
         # If it doesn't work
@@ -53,7 +54,7 @@ def pipeline_process(event: mp.Event, is_local: bool, pipeline: PipelineInterfac
                 # Send data to robot
                 # send_to_network_table(roborio, data)
                 # Put frame on output stream
-                #print(pipeline.get_frame())
+                # print(pipeline.get_frame())
                 print(stream)
                 stream.putFrame(pipeline.get_frame())
 
@@ -63,7 +64,7 @@ def pipeline_process(event: mp.Event, is_local: bool, pipeline: PipelineInterfac
     print('Exiting thread running pipeline ' + pipeline.get_name())
     
 
-def run_pipelines(pipelines: list[PipelineInterface], is_local=True, roborio=None):
+def run_pipelines(pipelines: list[PipelineInterface], is_local: bool = True, roborio: NetworkTable = None):
 
     # Initialize a CameraServer (used by all pipelines)
     cam_server = None
@@ -85,7 +86,9 @@ def run_pipelines(pipelines: list[PipelineInterface], is_local=True, roborio=Non
             print('Attempting add a MjpegServer with name ' + pipeline.get_name())
             server = cam_server.addServer(name=pipeline.get_name())
             print('Completed attempt to add server with name ' + pipeline.get_name())
-            stream = CvSource(pipeline.get_name(), VideoMode.PixelFormat.kMJPEG, pipeline.stream_res()[0], pipeline.stream_res()[1], pipeline.fps())
+            stream = CvSource(pipeline.get_name(), VideoMode.PixelFormat.kMJPEG,
+                              pipeline.stream_res()[0], pipeline.stream_res()[1],
+                              pipeline.fps())
             server.setSource(stream)
             print('CvSource has been set for server ' + pipeline.get_name() + ' at port ' + str(server.getPort()))
 
@@ -108,5 +111,5 @@ def run_pipelines(pipelines: list[PipelineInterface], is_local=True, roborio=Non
 # Local pipeline test without CameraServer or NetworkTables
 if __name__ == '__main__':
     mp.set_start_method('spawn')
-    pipelines = [ExamplePipeline('0', 0), ExamplePipeline('1', 1)]
-    run_pipelines(pipelines)
+    p = [ExamplePipeline('0', 0), ExamplePipeline('1', 1)]
+    run_pipelines(p)
