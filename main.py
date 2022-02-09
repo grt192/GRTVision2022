@@ -1,45 +1,100 @@
-import multiprocessing as mp
-import threading
-import logging
-from networktables import NetworkTables
-from pipeline_runner import run_pipelines
-from pipelines.example_pipeline import ExamplePipeline
+import cv2
+import numpy as np
+import socket
+import turret
 
-logging.basicConfig(level=logging.DEBUG)
+HOST = '' # Empty string to accept connections on all available IPv4 interfaces
+PORT = 30000        # Port to listen on (non-privileged ports are > 1023)
 
+# on Jetson: run python main.py False
+is_local = True
+if len(sys.argv) > 1:
+    is_local = sys.argv[1]
 
-# Connect to NetworkTables
-def connect():
-    # Start thread to connect to NetworkTables
-    cond = threading.Condition()
-    notified = [False]
+# Function to initialize video captures
+stream_res = (160, 120)
+fps = 30
+def init_cap(cam):
+    global is_local
 
-    def connection_listener(connected, info):
-        print(info, '; Connected=%s' % connected)
-        with cond:
-            notified[0] = True
-            cond.notify()
-
-    # Use RoboRIO static IP address
-    # Don't use 'roborio-192-frc.local'. https://robotpy.readthedocs.io/en/stable/guide/nt.html#networktables-guide
-    NetworkTables.initialize(server='10.1.92.2')
-    NetworkTables.addConnectionListener(connection_listener, immediateNotify=True)
-
-    with cond:
-        print('Waiting')
-        if not notified[0]:
-            cond.wait()
-
-    print('Connected to NetworkTables!')
-
-    return NetworkTables.getTable('jetson')
+    if cam == 'turret':
+        global turret_cap
+        turret_cap = cv2.VideoCapture(0 if is_local else '/dev/cam/turret')
+        turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
+        
+        turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
+        turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
+    
+    elif cam == 'intake':
+        global turret_cap
+        turret_cap = cv2.VideoCapture(1 if is_local else '/dev/cam/intake')
+        
+        turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
+        turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])    
 
 
-roborio = connect()
+# Initialize video capture
+init_cap()
 
-# Set up multiprocessing
-mp.set_start_method('fork')
+# Init pipelines
+turret = Turret()
 
-# Run the pipelines
-pipelines = [ExamplePipeline('0', '/dev/cam/turret', False), ExamplePipeline('1', '/dev/cam/intake', False)]
-run_pipelines(pipelines, False, roborio)
+# Init camera servers
+if not is_local:
+    from cscore import CameraServer, CvSource, VideoMode
+    
+    cam_server = CameraServer.getInstance()
+    cam_server.enableLogging()
+
+    # Create camera server for turret
+    print('Attempting add a MjpegServer for turret')
+    turret_server = cam_server.addServer(name='Turret')
+    print('Completed attempt to add server for turret')
+    turret_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
+    turret_server.setSource(turret_stream)
+    print('CvSource has been set for Turret at port ' + str(server.getPort()))
+
+
+# Loop to connect to socket
+while True:
+    try:
+        print('Attempting to connect')
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((HOST, PORT))
+            s.listen()
+            conn, addr = s.accept()
+            with conn:
+                print('Connected by', addr)
+            
+            # Loop to run everything
+            while True:
+                # Init video captures if not already
+                while not (turret_cap.isOpened() and intake_cap.isOpened()):
+                    if not turret_cap.isOpened():
+                        print('Error opening turret capture... retrying')
+                        init_cap('turret')
+                    if not intake_cap.isOpened(): 
+                        print('Error opening intake capture... retrying')
+                        init_cap('intake')
+                
+                # Run turret pipeline
+                ret, turret_frame = turret_cap.read()
+                if ret:
+                    turret_frame, data = turret.process(turret_frame)
+
+                    # If Jetson: send data and put frame
+                    if not is_local:
+                        conn.send(bytes(str(data) + "\n", "UTF-8"))
+                        turret_stream.putFrame(turret_frame)
+                    # If local: show frame
+                    else:
+                        cv2.imshow('Turret', turret_frame)
+
+                # Exit?
+                if is_local & cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                    
+    except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
+        print("Connection lost... retrying")
+    
+cv2.destroyAllWindows()
