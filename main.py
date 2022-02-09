@@ -1,10 +1,10 @@
 import cv2
-import numpy as np
 import socket
-import turret
+from turret import Turret
+import sys
 
-HOST = '' # Empty string to accept connections on all available IPv4 interfaces
-PORT = 30000        # Port to listen on (non-privileged ports are > 1023)
+HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
+PORT = 30000  # Port to listen on (non-privileged ports are > 1023)
 
 # on Jetson: run python main.py False
 is_local = True
@@ -14,10 +14,15 @@ if len(sys.argv) > 1:
 # Function to initialize video captures
 stream_res = (160, 120)
 fps = 30
-def init_cap(cam):
+
+turret_cap = None
+intake_cap = None
+
+
+def init_cap(cam=None):
     global is_local
 
-    if cam == 'turret':
+    if cam is None or cam == 'turret':
         global turret_cap
         turret_cap = cv2.VideoCapture(0 if is_local else '/dev/cam/turret')
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
@@ -25,7 +30,7 @@ def init_cap(cam):
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
     
-    elif cam == 'intake':
+    if cam is None or cam == 'intake':
         global turret_cap
         turret_cap = cv2.VideoCapture(1 if is_local else '/dev/cam/intake')
         
@@ -38,6 +43,8 @@ init_cap()
 
 # Init pipelines
 turret = Turret()
+
+turret_stream = None
 
 # Init camera servers
 if not is_local:
@@ -52,7 +59,7 @@ if not is_local:
     print('Completed attempt to add server for turret')
     turret_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
     turret_server.setSource(turret_stream)
-    print('CvSource has been set for Turret at port ' + str(server.getPort()))
+    print('CvSource has been set for Turret at port ' + str(turret_server.getPort()))
 
 
 # Loop to connect to socket

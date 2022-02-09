@@ -1,29 +1,26 @@
 import cv2
-import numpy
 
-class Turret():
 
-    hsv_lower = [0, 0, 250]
-    hsv_upper = [200, 10, 255]
+class Turret:
 
-    def __init__():
-        hsv_frame = None
-        mask_frame = None
-        result_frame = None
+    def __init__(self):
+        self.hsv_lower = [0, 0, 250]
+        self.hsv_upper = [200, 10, 255]
 
+        self.hsv_frame = None
+        self.mask = None
+        self.result_frame = None
 
     # Returned frame must be same size as input frame
-    def process(frame):
-
-        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask_frame = cv2.inRange(hsv_frame, hsv_lower, hsv_upper)
-        result_frame = cv2.bitwise_and(hsv_frame, hsv_frame, mask=mask_frame)
+    def process(self, frame):
+        self.hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
+        self.result_frame = cv2.bitwise_and(self.hsv_frame, self.hsv_frame, mask=self.mask)
 
         # TODO Use result_frame to find target coordinates
 
-
         # TODO Draw target on frame
 
-
-        # Return the frame
+        # TODO actually have data to pass
+        data = {'test': 'turret test value!'}
         return frame, data
