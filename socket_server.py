@@ -1,7 +1,7 @@
 import socket
 
 HOST = ''  # Standard loop back interface address (localhost)
-PORT = 30000        # Port to listen on (non-privileged ports are > 1023)
+PORT = 1337        # Port to listen on (non-privileged ports are > 1023)
 
 while True:
     try:

@@ -11,7 +11,7 @@ class Turret:
         self.mask = None
         self.result_frame = None
 
-    # Returned frame must be same size as input frame
+    # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
         self.hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
@@ -20,7 +20,9 @@ class Turret:
         # TODO Use result_frame to find target coordinates
 
         # TODO Draw target on frame
+        # temp test
+        cv2.circle(frame, (50, 50), 100, (255, 0, 0))
 
         # TODO actually have data to pass
         data = {'test': 'turret test value!'}
-        return frame, data
+        return data
