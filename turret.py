@@ -1,11 +1,12 @@
 import cv2
+import numpy as np
 
 
 class Turret:
 
     def __init__(self):
-        self.hsv_lower = [0, 0, 250]
-        self.hsv_upper = [200, 10, 255]
+        self.hsv_lower = np.array([0, 0, 250])
+        self.hsv_upper = np.array([200, 10, 255])
 
         self.hsv_frame = None
         self.mask = None
@@ -21,8 +22,11 @@ class Turret:
 
         # TODO Draw target on frame
         # temp test
-        cv2.circle(frame, (50, 50), 100, (255, 0, 0))
+        cv2.circle(frame, (50, 50), 50, (255, 0, 0))
 
         # TODO actually have data to pass
-        data = {'test': 'turret test value!'}
-        return data
+        turret_vision_status = False
+        turret_theta = 0
+        hub_distance = 0
+
+        return turret_vision_status, turret_theta, hub_distance

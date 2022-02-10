@@ -1,15 +1,10 @@
 import cv2
 import socket
 from turret import Turret
-import sys
 
 HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
 PORT = 1337  # Port to listen on (non-privileged ports are > 1023)
 
-# on Jetson: run python main.py False
-is_local = True
-if len(sys.argv) > 1:
-    is_local = sys.argv[1]
 
 # Function to initialize video captures
 stream_res = (160, 120)
@@ -19,27 +14,24 @@ turret_cap = None
 intake_cap = None
 
 
-def init_cap(cam=None):
-    global is_local
+def init_cap():
+    global turret_cap
+    global intake_cap
 
-    if cam is None or cam == 'turret':
-        global turret_cap
-        turret_cap = cv2.VideoCapture(0 if is_local else '/dev/cam/turret')
+    is_turret_cap = turret_cap is not None and turret_cap.isOpened()
+    is_intake_cap = intake_cap is not None and intake_cap.isOpened()
+
+    if not is_turret_cap:
+        turret_cap = cv2.VideoCapture('/dev/cam/turret')
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
         
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
-    
-    if cam is None or cam == 'intake':
-        global turret_cap
-        turret_cap = cv2.VideoCapture(1 if is_local else '/dev/cam/intake')
-        
-        turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
-        turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])    
 
+    if not is_intake_cap:
+        # TODO init intake capture
+        print('todo')
 
-# Initialize video capture
-init_cap()
 
 # Init pipelines
 turret = Turret()
@@ -47,20 +39,20 @@ turret = Turret()
 turret_stream = None
 
 # Init camera servers
-if not is_local:
-    from cscore import CameraServer, CvSource, VideoMode
-    
-    cam_server = CameraServer.getInstance()
-    cam_server.enableLogging()
+from cscore import CameraServer, CvSource, VideoMode
 
-    # Create camera server for turret
-    print('Attempting add a MjpegServer for turret')
-    turret_server = cam_server.addServer(name='Turret')
-    print('Completed attempt to add server for turret')
-    turret_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
-    turret_server.setSource(turret_stream)
-    print('CvSource has been set for Turret at port ' + str(turret_server.getPort()))
+cam_server = CameraServer.getInstance()
+cam_server.enableLogging()
 
+# Create camera server for turret
+print('Attempting add a MjpegServer for turret')
+turret_server = cam_server.addServer(name='Turret')
+print('Completed attempt to add server for turret')
+turret_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
+turret_server.setSource(turret_stream)
+print('CvSource has been set for Turret at port ' + str(turret_server.getPort()))
+
+# Data variables
 
 # Loop to connect to socket
 while True:
@@ -72,36 +64,27 @@ while True:
             conn, addr = s.accept()
             with conn:
                 print('Connected by', addr)
-            
-            # Loop to run everything
-            while True:
-                # Init video captures if not already
-                while not (turret_cap.isOpened() and intake_cap.isOpened()):
-                    if not turret_cap.isOpened():
-                        print('Error opening turret capture... retrying')
-                        init_cap('turret')
-                    if not intake_cap.isOpened(): 
-                        print('Error opening intake capture... retrying')
-                        init_cap('intake')
-                
-                # Run turret pipeline
-                ret, turret_frame = turret_cap.read()
-                if ret:
-                    turret_frame, data = turret.process(turret_frame)
 
-                    # If Jetson: send data and put frame
-                    if not is_local:
-                        conn.send(bytes(str(data) + "\n", "UTF-8"))
+                # Loop to run everything
+                while True:
+                    init_cap()
+
+                    # Run turret pipeline
+                    ret, turret_frame = turret_cap.read()
+                    if ret:
+                        turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                         turret_stream.putFrame(turret_frame)
-                    # If local: show frame
                     else:
-                        cv2.imshow('Turret', turret_frame)
+                        turret_vision_status = False
+                        turret_theta = 0
+                        hub_distance = 0
 
-                # Exit?
-                if is_local & cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-                    
+                    # TODO Run intake pipeline and get data
+                    ball_detected = False
+
+                    # Send data
+                    conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+
     except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         print("Connection lost... retrying")
-    
-cv2.destroyAllWindows()
+
