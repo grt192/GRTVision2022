@@ -1,6 +1,7 @@
 import cv2
 import socket
 from turret import Turret
+from intake import Intake
 
 HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
 PORT = 1337  # Port to listen on (non-privileged ports are > 1023)
@@ -29,14 +30,18 @@ def init_cap():
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
 
     if not is_intake_cap:
-        # TODO init intake capture
-        print('todo')
+        intake_cap = cv2.VideoCapture('/dev/cam/intake')
+
+        intake_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
+        intake_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
 
 
 # Init pipelines
 turret = Turret()
+intake = Intake()
 
 turret_stream = None
+intake_stream = None
 
 # Init camera servers
 from cscore import CameraServer, CvSource, VideoMode
@@ -45,14 +50,17 @@ cam_server = CameraServer.getInstance()
 cam_server.enableLogging()
 
 # Create camera server for turret
-print('Attempting add a MjpegServer for turret')
 turret_server = cam_server.addServer(name='Turret')
-print('Completed attempt to add server for turret')
 turret_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
 turret_server.setSource(turret_stream)
-print('CvSource has been set for Turret at port ' + str(turret_server.getPort()))
+print('Server created for Turret at port ' + str(turret_server.getPort()))
 
-# Data variables
+# Create camera server for intake
+intake_server = cam_server.addServer(name='Intake')
+intake_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
+intake_server.setSource(intake_stream)
+print('Server created for Intake at port ' + str(intake_server.getPort()))
+
 
 # Loop to connect to socket
 while True:
@@ -71,16 +79,21 @@ while True:
 
                     # Run turret pipeline
                     ret, turret_frame = turret_cap.read()
+                    turret_vision_status = False
+                    turret_theta = 0
+                    hub_distance = 0
+
                     if ret:
                         turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                         turret_stream.putFrame(turret_frame)
-                    else:
-                        turret_vision_status = False
-                        turret_theta = 0
-                        hub_distance = 0
 
-                    # TODO Run intake pipeline and get data
+                    # Run intake pipeline
+                    ret, intake_frame = intake_cap.read()
                     ball_detected = False
+
+                    if ret:
+                        ball_detected = intake.process(intake_frame)
+                        intake_stream.putFrame(intake_frame)
 
                     # Send data
                     conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
