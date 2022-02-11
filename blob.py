@@ -4,9 +4,9 @@ import numpy as np
 
 class BlobDetector:
 
-    def __init__(self, hsv_lower, hsv_upper):
+    def __init__(self, hsv_lower, hsv_upper, hsv_lower2=None, hsv_upper2=None):
         # Vision constants
-        self.blur_radius = 12
+        self.blur_radius = 6
         self.ksize_blur = int(6 * round(self.blur_radius) + 1)
         self.min_area = 20
         self.circularity = [0.0, 1.0]
@@ -14,10 +14,16 @@ class BlobDetector:
         self.hsv_lower = hsv_lower
         self.hsv_upper = hsv_upper
 
+        self.hsv_lower2 = None
+        self.hsv_upper2 = None
+
         # Pre-allocated numpy arrays
         self.blur_frame = None
         self.hsv_frame = None
+        self.mask1 = None
+        self.mask2 = None
         self.mask = None
+        self.canny_frame = None
         self.binary_frame = None
         self.circles = None
 
@@ -29,12 +35,26 @@ class BlobDetector:
         self.hsv_frame = cv2.cvtColor(self.blur_frame, cv2.COLOR_BGR2HSV)
 
         # Color mask
-        self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
+        self.mask1 = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
+
+        if self.hsv_lower2 is not None and self.hsv_upper2 is not None:
+            self.mask2 = cv2.inRange(self.hsv_frame, self.hsv_lower2, self.hsv_upper2)
+            self.mask = cv2.bitwise_or(self.mask1, self.mask2)
+        else:
+            self.mask = self.mask1
+
+        # Canny edge
+        self.canny_frame = cv2.Canny(self.mask, 200, 250)
+
+        # Min and max circle radii
+        w = frame.shape[0]
+        h = frame.shape[1]
+        min_radius = (int) (w / 12)
+        max_radius = (int) (w / 2)
 
         # Hough circles
-        rows = self.mask.shape[0]
-        self.circles = cv2.HoughCircles(self.mask, cv2.HOUGH_GRADIENT, 1, rows / 8, param1=200, param2=10, minRadius=0,
-                                        maxRadius=0)
+        self.circles = cv2.HoughCircles(self.canny_frame, cv2.HOUGH_GRADIENT, 1, (int) (w / 4), param1=254, param2=25,
+                                        minRadius=min_radius, maxRadius=max_radius)
 
         # Draw circles
         if self.circles is not None:

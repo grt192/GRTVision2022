@@ -45,8 +45,10 @@ while True:
     if ret:
         ball_detected = intake.process(intake_frame)
         cv2.imshow("Intake", intake_frame)
-        if intake.blue_mask() is not None:
-            cv2.imshow("Intake mask", intake.blue_mask())
+        if intake.red_blob_detector.mask is not None:
+            cv2.imshow("Intake mask", intake.red_blob_detector.mask)
+        if intake.red_blob_detector.canny_frame is not None:
+            cv2.imshow("intake canny", intake.red_blob_detector.canny_frame)
 
     print((turret_vision_status, turret_theta, hub_distance, ball_detected))
 
