@@ -1,5 +1,6 @@
 import cv2
 from turret import Turret
+from intake import Intake
 
 
 turret_cap = None
@@ -18,12 +19,12 @@ def init_cap():
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
 
     if not is_intake_cap:
-        # TODO init intake capture
-        print('todo')
+        intake_cap = cv2.VideoCapture(1)
 
 
 # Init pipelines
 turret = Turret()
+intake = Intake()
 
 while True:
     init_cap()
@@ -38,8 +39,14 @@ while True:
         turret_theta = 0
         hub_distance = 0
 
-    # TODO Run intake pipeline and get data
+    # Run intake pipeline and get data
     ball_detected = False
+    ret, intake_frame = intake_cap.read()
+    if ret:
+        ball_detected = intake.process(intake_frame)
+        cv2.imshow("Intake", intake_frame)
+        if intake.blue_mask() is not None:
+            cv2.imshow("Intake mask", intake.blue_mask())
 
     print((turret_vision_status, turret_theta, hub_distance, ball_detected))
 
