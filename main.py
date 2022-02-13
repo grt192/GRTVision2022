@@ -1,5 +1,6 @@
 import cv2
 import socket
+import time
 from turret import Turret
 from intake import Intake
 
@@ -23,14 +24,14 @@ def init_cap():
     is_intake_cap = intake_cap is not None and intake_cap.isOpened()
 
     if not is_turret_cap:
-        turret_cap = cv2.VideoCapture('/dev/cam/turret')
+        turret_cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
         
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
 
     if not is_intake_cap:
-        intake_cap = cv2.VideoCapture('/dev/cam/intake')
+        intake_cap = cv2.VideoCapture('/dev/cam/intake', cv2.CAP_V4L)
 
         intake_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         intake_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
@@ -67,6 +68,7 @@ while True:
     try:
         print('Attempting to connect')
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # https://stackoverflow.com/questions/29217502/socket-error-address-already-in-use
             s.bind((HOST, PORT))
             s.listen()
             conn, addr = s.accept()
@@ -87,6 +89,9 @@ while True:
                         turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                         turret_stream.putFrame(turret_frame)
 
+                    # Pause
+                    time.sleep(0.015)
+
                     # Run intake pipeline
                     ret, intake_frame = intake_cap.read()
                     ball_detected = False
@@ -97,6 +102,9 @@ while True:
 
                     # Send data
                     conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+
+                    # Pause
+                    time.sleep(0.015)
 
     except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         print("Connection lost... retrying")
