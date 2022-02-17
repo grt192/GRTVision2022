@@ -78,55 +78,72 @@ turret_theta = 0
 hub_distance = 0
 
 
+def init_cap_function():
+    while True:
+        init_cap()
+        time.sleep(0.01)
+
+
 # Thread function to process turret frame
 def turret_function():
-    global turret, turret_cap, turret_stream, turret_frame
+    global turret, turret_cap, turret_frame
     global turret_vision_status, turret_theta, hub_distance
 
-    # Run turret pipeline
-    ret, turret_frame = turret_cap.read()
+    while True:
+        # Run turret pipeline
+        ret, turret_frame = turret_cap.read()
 
-    if ret:
-        # If frame: get data and put frame on camera stream
-        turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
-        turret_stream.putFrame(turret_frame)
-    else:
-        # If no frame: reset data to default
-        turret_vision_status = False
-        turret_theta = 0
-        hub_distance = 0
+        if ret:
+            # If frame: get data and put frame on camera stream
+            turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
+        else:
+            # If no frame: reset data to default
+            turret_vision_status = False
+            turret_theta = 0
+            hub_distance = 0
 
-    # Pause thread
-    time.sleep(0.001)
+        # Pause thread
+        time.sleep(0.005)
 
 
 # Thread function to process intake frame
 def intake_function():
-    global intake, intake_cap, intake_stream, intake_frame
+    global intake, intake_cap, intake_frame
     global ball_detected
 
-    # Run intake pipeline
-    ret, intake_frame = intake_cap.read()
+    while True:
+        # Run intake pipeline
+        ret, intake_frame = intake_cap.read()
+        if ret:
+            # If frame: get data and put frame on camera stream
+            ball_detected = intake.process(intake_frame)
+        else:
+            # If no frame: reset data to default
+            ball_detected = False
 
-    if ret:
-        # If frame: get data and put frame on camera stream
-        ball_detected = intake.process(intake_frame)
-        print('put intake')
+        # Pause thread
+        time.sleep(0.001)
+
+def update_streams_function():
+    global intake_stream, turret_stream
+    global intake_frame, turret_frame
+
+    while True:
         intake_stream.putFrame(intake_frame)
-    else:
-        # If no frame: reset data to default
-        ball_detected = False
+        turret_stream.putFrame(turret_frame)
 
-    # Pause thread
-    time.sleep(0.001)
+        time.sleep(0.1)
 
 
 # Thread function to send data
 def send_data_function():
     global turret_vision_status, turret_theta, hub_distance, ball_detected
 
-    conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
-    time.sleep(0.001)
+    while True:
+        print('send')
+        conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+        time.sleep(0.01)
+
 
 
 # Loop to connect to socket
@@ -143,22 +160,27 @@ while True:
                 print('Connected by', addr)
 
                 # Start threads
-                turret_thread = threading.Thread(target=turret_function())
-                intake_thread = threading.Thread(target=intake_function())
-                send_data_thread = threading.Thread(target=send_data_function())
+                turret_thread = threading.Thread(target=turret_function)
+                intake_thread = threading.Thread(target=intake_function)
+                update_streams_thread = threading.Thread(target=update_streams_function)
+                send_data_thread = threading.Thread(target=send_data_function)
+                init_cap_thread = threading.Thread(target=init_cap_function)
 
                 turret_thread.setDaemon(True)
                 intake_thread.setDaemon(True)
+                update_streams_thread.setDaemon(True)
                 send_data_thread.setDaemon(True)
+                init_cap_thread.setDaemon(True)
 
                 turret_thread.start()
                 intake_thread.start()
+                update_streams_thread.start()
                 send_data_thread.start()
+                init_cap_thread.start()
 
                 # Loop to run everything
                 while True:
-                    print('in while true loop')
-                    init_cap()
+                    pass
 
     except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         print("Connection lost... retrying")
