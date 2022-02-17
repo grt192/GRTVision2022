@@ -1,0 +1,6 @@
+# USE ONLY FOR LOCAL TESTING
+# dependencies for jetson are hard! use setup_jetson.sh instead.
+
+opencv-python
+pynetworktables
+numpy
