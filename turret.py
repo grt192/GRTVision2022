@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 import config
+import utility
 
 
 class Turret:
@@ -116,11 +117,16 @@ class Turret:
                 print("ERROR while finding contours")
                 self.reset_data()
 
-            # Draw reference lines (center line)
-            cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2), (255, 255, 255), 2)
-
         else:
             self.reset_data()
+
+        # Draw reference lines (center line)
+        cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2), (255, 255, 255), 2)
+
+        # Draw text
+        utility.put_text_group(frame, ('Status: ' + str(self.turret_vision_status),
+                                       'Turret theta: ' + (self.turret_theta if self.turret_vision_status else '---'),
+                                       'Hub dist: ' + (self.hub_distance if self.turret_vision_status else '---')))
 
         # Return vision data
         return self.turret_vision_status, self.turret_theta, self.hub_distance
@@ -130,6 +136,7 @@ class Turret:
         self.turret_vision_status = False
         self.turret_theta = 0
         self.hub_distance = 0
+
 
 
 # Pulled from imutils package definition

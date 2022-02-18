@@ -1,15 +1,18 @@
 import numpy as np
 from blob import BlobDetector
+import utility
 
 
 class Intake:
 
     def __init__(self):
+        # Vision data
+        self.ball_detected = False
 
+        # Vision constants
         self.max_balls = 5
         self.min_balls = 1
 
-        # Vision constants
         self.blue_hsv_lower = np.array([99, 71, 78])
         self.blue_hsv_upper = np.array([123, 255, 255])
 
@@ -33,6 +36,10 @@ class Intake:
         num_red = self.red_blob_detector.process(frame)
 
         if self.min_balls <= num_red + num_blue <= self.max_balls:
-            return True
+            self.ball_detected = True
+        else:
+            self.ball_detected = False
 
-        return False
+        utility.put_text_group(frame, ('Balls? ' + str(self.ball_detected), ))
+
+        return self.ball_detected
