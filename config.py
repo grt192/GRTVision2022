@@ -13,11 +13,6 @@ focal_y = newcameramtx[1][1]
 cx = newcameramtx[0][2]
 cy = newcameramtx[1][2]
 
-lower_green = np.array([0,0,250])
-upper_green = np.array([200,10,255])
+lower_green = np.array([0, 0, 250])
+upper_green = np.array([200, 10, 255])
 
-# Constants for drawing on image
-line_thickness = 1
-center_line_length = 3
-text_offset = 5
-color = (255, 255, 255)

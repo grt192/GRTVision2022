@@ -21,7 +21,8 @@ class Intake:
 
         # Blob detectors
         self.blue_blob_detector = BlobDetector(self.blue_hsv_lower, self.blue_hsv_upper)
-        self.red_blob_detector = BlobDetector(self.red_hsv_lower, self.red_hsv_upper, self.red_hsv_lower2, self.red_hsv_upper2)
+        self.red_blob_detector = BlobDetector(self.red_hsv_lower, self.red_hsv_upper, self.red_hsv_lower2,
+                                              self.red_hsv_upper2)
 
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
@@ -35,7 +36,3 @@ class Intake:
             return True
 
         return False
-
-
-    def blue_mask(self):
-        return self.blue_blob_detector.mask
