@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import math
-import config
 import utility
 
 
@@ -26,6 +25,17 @@ class Turret:
                                  [r * math.cos(theta_start + 3 * theta), r * math.sin(theta_start + 3 * theta), 0],
                                  [r * math.cos(theta_start + 4 * theta), r * math.sin(theta_start + 4 * theta), 0]]],
                                np.float32)
+
+        # Calibration
+        self.camera_mtx = np.array([691.0036837, 0, 321.09540873],
+                                   [0, 679.96569767, 211.53434312],
+                                   [0, 0, 1])
+
+        self.distortion = np.array([0.10758992, -0.77644608, -0.00262037, -0.00947057,  1.16729517])
+
+        self.new_camera_mtx = np.array([683.24865723, 0, 315.31818897],
+                                        [0, 667.2901001, 209.99858588],
+                                        [0, 0, 1])
 
         # Vision constants
         # TODO add HSV adjustment over TCP
@@ -122,7 +132,7 @@ class Turret:
                 # Else, calculate distance to hub
                 obj_points = self.obj_points4 if (len(image_points) == 4) else self.obj_points5
                 _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
-                                               cameraMatrix=config.newcameramtx, distCoeffs=None,
+                                               cameraMatrix=self.newcameramtx, distCoeffs=self.distortion,
                                                flags=cv2.SOLVEPNP_P3P)
 
                 # rvecs to rotation matrix by axis angle to 3 by 3
