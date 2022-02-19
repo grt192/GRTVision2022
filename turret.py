@@ -7,15 +7,26 @@ import utility
 
 class Turret:
 
-    theta = math.pi / 8  # radians
-    r = 53.13 / 2  # inches
-    # 3D points in real world space
-    obj_points = np.array([[[r * math.cos(0), r * math.sin(0), 0],
+    def __init__(self):
+
+        # For vision processing
+        theta = math.pi / 8  # radians
+        r = 53.13 / 2  # inches
+        # 3D points in real world space
+        self.obj_points4 = np.array([[[r * math.cos(0), r * math.sin(0), 0],
                                  [r * math.cos(theta), r * math.sin(theta), 0],
                                  [r * math.cos(2 * theta), r * math.sin(2 * theta), 0],
                                  [r * math.cos(3 * theta), r * math.sin(3 * theta), 0]]], np.float32)
 
-    def __init__(self):
+        theta_start = 3 * math.pi / 16
+
+        self.obj_points5 = np.array([[[r * math.cos(theta_start), r * math.sin(theta_start), 0],
+                                 [r * math.cos(theta_start + theta), r * math.sin(theta_start + theta), 0],
+                                 [r * math.cos(theta_start + 2 * theta), r * math.sin(theta_start + 2 * theta), 0],
+                                 [r * math.cos(theta_start + 3 * theta), r * math.sin(theta_start + 3 * theta), 0],
+                                 [r * math.cos(theta_start + 4 * theta), r * math.sin(theta_start + 4 * theta), 0]]],
+                               np.float32)
+
         # Vision constants
         # TODO add HSV adjustment over TCP
         self.hsv_lower = np.array([0, 228, 16])
@@ -52,6 +63,11 @@ class Turret:
         # Filter using HSV mask
         self.hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
+
+        # Erode and dilate mask to remove tiny noise
+        self.mask = cv2.erode(self.mask, None, iterations=5)
+        self.mask = cv2.dilate(self.mask, None, iterations=10)
+
         self.masked_frame = cv2.bitwise_and(self.hsv_frame, self.hsv_frame, mask=self.mask)
 
         # Grab contours
@@ -72,20 +88,19 @@ class Turret:
 
                     center = [cx, cy]
                     # Array of contour and center
-                    output.append([c, center])
+                    output.append([c, cx, cy, center])
 
                     image_points.append(center)
 
             # Sort output by center x of contour
-            output.sort(key=lambda a: a[1][0])
+            output.sort(key=lambda a: a[1])
 
             # Sort image points by center x of contour
             image_points.sort(key=lambda b: b[0])
 
-            # Cut down the number of contours to just 4
-            if len(image_points) > 4:
+            # Cut down the number of contours to either 4 or 5
+            if len(image_points) > 5:
                 image_points = image_points[len(image_points) - 4:len(image_points)]
-            if len(output) > 4:
                 output = output[len(output) - 4:len(output)]
 
             # Draw bounding boxes for the contours
@@ -97,8 +112,16 @@ class Turret:
             image_points = np.array([image_points], np.float32)
 
             # Calibrate in real time using rvecs and tvecs
+            # Check the number of contours and use the appropriate obj_points
+
             try:
-                _, rvecs, tvecs = cv2.solveP3P(objectPoints=self.obj_points, imagePoints=image_points,
+                # Sanity check
+                if len(image_points) < 4 or len(image_points) > 5:
+                    raise
+
+                # Else, calculate distance to hub
+                obj_points = self.obj_points4 if (len(image_points) == 4) else self.obj_points5
+                _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
                                                cameraMatrix=config.newcameramtx, distCoeffs=None,
                                                flags=cv2.SOLVEPNP_P3P)
 
@@ -108,10 +131,18 @@ class Turret:
                 self.tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
                 real_cam_center = np.matmul(-self.rmatrix_T, self.tmatrix)
 
+                # Calculate turret theta (not actually an angle, more like pixel distance)
+                # Calculate midpoint between leftmost and rightmost contour
+                left_x = image_points[0][0]
+                right_x = image_points[len(image_points) - 1][0]
+
+                midpoint = (left_x + right_x) / 2
+                self.turret_theta = midpoint - self.cam_center[0]
+
                 # Vision data to pass
                 self.turret_vision_status = True
                 self.hub_distance = real_cam_center[1][0]
-                # TODO turret_theta
+
 
             except:  # Leave if solvePNP doesn't work (ie. no contours detected)
                 print("ERROR while finding contours")
