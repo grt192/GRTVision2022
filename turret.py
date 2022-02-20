@@ -27,15 +27,15 @@ class Turret:
                                np.float32)
 
         # Calibration
-        self.camera_mtx = np.array([691.0036837, 0, 321.09540873],
+        self.camera_mtx = np.array([[691.0036837, 0, 321.09540873],
                                    [0, 679.96569767, 211.53434312],
-                                   [0, 0, 1])
+                                   [0, 0, 1]])
 
         self.distortion = np.array([0.10758992, -0.77644608, -0.00262037, -0.00947057,  1.16729517])
 
-        self.new_camera_mtx = np.array([683.24865723, 0, 315.31818897],
+        self.new_camera_mtx = np.array([[683.24865723, 0, 315.31818897],
                                         [0, 667.2901001, 209.99858588],
-                                        [0, 0, 1])
+                                        [0, 0, 1]])
 
         # Vision constants
         # TODO add HSV adjustment over TCP
