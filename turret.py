@@ -39,8 +39,8 @@ class Turret:
 
         # Vision constants
         # TODO add HSV adjustment over TCP
-        self.hsv_lower = np.array([0, 228, 16])
-        self.hsv_upper = np.array([255, 255, 255])
+        self.hsv_lower = np.array([36, 99, 62])
+        self.hsv_upper = np.array([97, 255, 255])
 
         self.cam_center = None
 
@@ -75,8 +75,9 @@ class Turret:
         self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
 
         # Erode and dilate mask to remove tiny noise
-        self.mask = cv2.erode(self.mask, None, iterations=5)
-        self.mask = cv2.dilate(self.mask, None, iterations=10)
+        self.mask = cv2.erode(self.mask, None, iterations=2)
+
+        self.mask = cv2.dilate(self.mask, None, iterations=5)
 
         self.masked_frame = cv2.bitwise_and(self.hsv_frame, self.hsv_frame, mask=self.mask)
 
@@ -103,12 +104,15 @@ class Turret:
                     image_points.append(center)
 
             # Sort output by center x of contour
+            # TODO sort by area
             output.sort(key=lambda a: a[1])
 
             # Sort image points by center x of contour
             image_points.sort(key=lambda b: b[0])
 
             # Cut down the number of contours to either 4 or 5
+            print(len(image_points))
+
             if len(image_points) > 5:
                 image_points = image_points[len(image_points) - 4:len(image_points)]
                 output = output[len(output) - 4:len(output)]
@@ -161,7 +165,6 @@ class Turret:
         else:
             self.reset_data()
 
-        print('drawing ref lines')
         # Draw reference lines (center line)
         cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2), (255, 255, 255), 2)
 
@@ -178,6 +181,11 @@ class Turret:
         self.turret_vision_status = False
         self.turret_theta = 0
         self.hub_distance = 0
+
+
+    def set_hsv(self, new_lower, new_upper):
+        self.hsv_lower = new_lower
+        self.hsv_upper = new_upper
 
 
 
