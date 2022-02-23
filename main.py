@@ -25,6 +25,7 @@ def init_cap():
 
     if not is_turret_cap:
         turret_cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
+        turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
         
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
@@ -86,6 +87,7 @@ while True:
                     hub_distance = 0
 
                     if ret:
+                        turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
                         turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                         turret_stream.putFrame(turret_frame)
 

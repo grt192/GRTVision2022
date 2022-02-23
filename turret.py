@@ -60,8 +60,6 @@ class Turret:
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
 
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-
         # Get coordinates of the center of the frame
         if self.cam_center is None:
             h, w, _ = frame.shape
@@ -163,6 +161,7 @@ class Turret:
         else:
             self.reset_data()
 
+        print('drawing ref lines')
         # Draw reference lines (center line)
         cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2), (255, 255, 255), 2)
 

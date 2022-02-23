@@ -16,7 +16,7 @@ def init_cap():
 
     if not is_turret_cap:
         turret_cap = cv2.VideoCapture(1)
-        turret_cap.set(cv2.CAP_PROP_EXPOSURE, -100)
+        turret_cap.set(cv2.CAP_PROP_EXPOSURE, -20)
 
 
 # Init pipelines
@@ -32,10 +32,13 @@ while True:
 
     ret, turret_frame = turret_cap.read()
     if ret:
+        turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
+
         turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
+
         cv2.imshow("Turret", turret_frame)
-        cv2.imshow("Turret HSV", turret.hsv_frame)
-        cv2.imshow("Turret mask", turret.mask)
+        # cv2.imshow("Turret HSV", turret.hsv_frame)
+        # cv2.imshow("Turret mask", turret.mask)
 
     print((turret_vision_status, turret_theta, hub_distance))
 
