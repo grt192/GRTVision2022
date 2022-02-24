@@ -1,6 +1,5 @@
 # USE ONLY FOR LOCAL TESTING
-# dependencies for jetson are hard! use setup_jetson.sh instead.
+# dependencies for jetson are hard! use setup_jetson.sh instead. or not lol
 
-opencv-python
-pynetworktables
-numpy
+opencv-python~=4.5.5.62
+numpy~=1.22.1
