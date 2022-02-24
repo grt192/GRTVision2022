@@ -32,6 +32,8 @@ class Turret:
         self.hsv_lower = np.array([0, 228, 16])
         self.hsv_upper = np.array([255, 255, 255])
 
+        self.beta_value = 50 #subject to change
+
         self.cam_center = None
 
         # Init vision data variables
@@ -40,6 +42,8 @@ class Turret:
         # Pre-allocated frames
         self.blur_frame = None
         self.hsv_frame = None
+        self.bright_frame = None
+        self.white_balance_frame = None
         self.mask = None
         self.masked_frame = None
 
@@ -60,8 +64,14 @@ class Turret:
         # Blur
         self.blur_frame = cv2.blur(frame, (4, 4))
 
+        # Change Brightness
+        self.bright_frame = change_brightness(self.blur_frame, self.beta_value)
+
+        # White balance the frame
+        self.white_balance_frame = white_balance(self.bright_frame)
+
         # Filter using HSV mask
-        self.hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        self.hsv_frame = cv2.cvtColor(self.white_balance_frame, cv2.COLOR_BGR2HSV)
         self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
 
         # Erode and dilate mask to remove tiny noise
@@ -193,3 +203,38 @@ def grab_contours(cnts):
 
     # return the actual contours array
     return cnts
+
+
+
+def change_brightness(frame, beta):
+    bright_frame = np.zeros(frame.shape, frame.dtype)
+
+    for y in range(frame.shape[0]):
+        for x in range(frame.shape[1]):
+            for c in range(frame.shape[2]):
+                bright_frame[y, x, c] = np.clip(frame[y, x, c] + beta, 0, 255)
+
+    return bright_frame
+
+
+def white_balance(frame):
+    r, g, b = cv2.split(frame)
+
+    r_avg = cv2.mean(r)[0]
+    g_avg = cv2.mean(g)[0]
+    b_avg = cv2.mean(b)[0]
+
+    # Find the gain occupied by each channel
+
+    k = (r_avg + g_avg + b_avg) / 3
+    kr = k / r_avg
+    kg = k / g_avg
+    kb = k / b_avg
+
+    r = cv2.addWeighted(src1=r, alpha=kr, src2=0, beta=0, gamma=0)
+    g = cv2.addWeighted(src1=g, alpha=kg, src2=0, beta=0, gamma=0)
+    b = cv2.addWeighted(src1=b, alpha=kb, src2=0, beta=0, gamma=0)
+
+    balance_img = cv2.merge([b, g, r])
+
+    return balance_img
