@@ -4,6 +4,7 @@ import cv2
 import socket
 from turret import Turret
 from intake import Intake
+import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
@@ -46,11 +47,16 @@ def init_cap():
 turret = Turret()
 intake = Intake()
 
+# Init stream objects (initialized below)
+turret_stream = None
+intake_stream = None
 
-# Init streams
+
+# Helper classes for running STREAM
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
+
 
 class CamHandler(BaseHTTPRequestHandler):
 
@@ -96,21 +102,35 @@ class CamHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'</body></html>')
             return
 
+
 # Start intake and turret camera servers
-try:
-    turret_stream = CamHandler()
-    intake_stream = CamHandler()
+def start_turret_stream():
+    global turret_stream
 
-    server = ThreadedHTTPServer(('localhost', 8081), turret_stream)
-    print("server started at http://127.0.0.1:8081/cam.html")
-    server.serve_forever()
+    try:
+        turret_stream = CamHandler()
 
-    server2 = ThreadedHTTPServer(('localhost', 8082), intake_stream)
-    print("server2 started at http://127.0.0.1:8082/cam.html")
-    server2.serve_forever()
+        server = ThreadedHTTPServer(('localhost', 8081), turret_stream)
+        print("server started at http://127.0.0.1:8081/cam.html")
+        server.serve_forever()
 
-except KeyboardInterrupt:
-    server.socket.close()
+    except KeyboardInterrupt:
+        server.socket.close()
+
+
+# Start intake and turret camera servers
+def start_intake_stream():
+    global intake_stream
+
+    try:
+        intake_stream = CamHandler()
+
+        server = ThreadedHTTPServer(('localhost', 8082), intake_stream)
+        print("server started at http://127.0.0.1:8082/cam.html")
+        server.serve_forever()
+
+    except KeyboardInterrupt:
+        server.socket.close()
 
 
 # Loop to connect to socket
@@ -124,6 +144,15 @@ while True:
             conn, addr = s.accept()
             with conn:
                 print('Connected by', addr)
+
+                # Start threads for streams
+                turret_thread = threading.Thread(target=start_turret_stream)
+                turret_thread.start()
+                turret_thread.join()
+
+                intake_thread = threading.Thread(target=start_intake_stream)
+                intake_thread.start()
+                intake_thread.join()
 
                 # Loop to run everything
                 while True:
