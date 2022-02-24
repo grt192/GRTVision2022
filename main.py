@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
 
 import cv2
 import socket
-import time
 from turret import Turret
 from intake import Intake
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+
 
 HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
 PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
@@ -43,26 +46,71 @@ def init_cap():
 turret = Turret()
 intake = Intake()
 
-turret_stream = None
-intake_stream = None
 
-# Init camera servers
-from cscore import CameraServer, CvSource, VideoMode
+# Init streams
 
-cam_server = CameraServer.getInstance()
-cam_server.enableLogging()
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
 
-# Create camera server for turret
-turret_server = cam_server.addServer(name='Turret')
-turret_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
-turret_server.setSource(turret_stream)
-print('Server created for Turret at port ' + str(turret_server.getPort()))
+class CamHandler(BaseHTTPRequestHandler):
 
-# Create camera server for intake
-intake_server = cam_server.addServer(name='Intake')
-intake_stream = CvSource('Turret', VideoMode.PixelFormat.kMJPEG, stream_res[0], stream_res[1], fps)
-intake_server.setSource(intake_stream)
-print('Server created for Intake at port ' + str(intake_server.getPort()))
+    def __init__(self):
+        self.frame = None
+
+    def do_GET(self):
+        if self.path.endswith('.mjpg'):
+            self.send_response(200)
+            self.send_header(
+                'Content-type',
+                'multipart/x-mixed-replace; boundary=--jpgboundary'
+            )
+            self.end_headers()
+            while True:
+                try:
+
+                    if self.frame is not None:
+                        continue
+
+                        img_str = cv2.imencode('.jpg', self.frame)[1].tobytes()
+
+                        self.send_header('Content-type', 'image/jpeg')
+                        self.send_header('Content-length', len(img_str))
+                        self.end_headers()
+
+                        self.wfile.write(img_str)
+                        self.wfile.write(b"\r\n--jpgboundary\r\n")
+
+                except KeyboardInterrupt:
+                    self.wfile.write(b"\r\n--jpgboundary--\r\n")
+                    break
+                except BrokenPipeError:
+                    continue
+            return
+
+        if self.path.endswith('.html'):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'<html><head></head><body>')
+            self.wfile.write(b'<img src="http://127.0.0.1:8081/cam.mjpg"/>')
+            self.wfile.write(b'</body></html>')
+            return
+
+# Start intake and turret camera servers
+try:
+    turret_stream = CamHandler()
+    intake_stream = CamHandler()
+
+    server = ThreadedHTTPServer(('localhost', 8081), turret_stream)
+    print("server started at http://127.0.0.1:8081/cam.html")
+    server.serve_forever()
+
+    server2 = ThreadedHTTPServer(('localhost', 8082), intake_stream)
+    print("server2 started at http://127.0.0.1:8082/cam.html")
+    server2.serve_forever()
+
+except KeyboardInterrupt:
+    server.socket.close()
 
 
 # Loop to connect to socket
@@ -91,7 +139,7 @@ while True:
                         # Do this out here instead of in turret.py so that the frame gets preserved
                         turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
                         turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
-                        turret_stream.putFrame(turret_frame)
+                        turret_stream.frame = turret_frame
 
                     # Run intake pipeline
                     ret, intake_frame = intake_cap.read()
@@ -99,7 +147,7 @@ while True:
 
                     if ret:
                         ball_detected = intake.process(intake_frame)
-                        intake_stream.putFrame(intake_frame)
+                        intake_stream.frame = intake_frame
 
                     # Send data
                     conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
