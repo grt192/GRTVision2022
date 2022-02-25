@@ -4,6 +4,8 @@ from socketserver import ThreadingMixIn
 
 capture = None
 
+address = '127.0.0.1'
+port = 8081
 
 class CamHandler(BaseHTTPRequestHandler):
 
@@ -42,9 +44,9 @@ class CamHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b'<html><head></head><body>')
-            self.wfile.write(b'<img src="http://127.0.0.1:8081/cam.mjpg"/>')
-            self.wfile.write(b'</body></html>')
+            self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
+            self.wfile.write(('<img src="http://' + address + ':' + str(port) + '/cam.mjpg"/>').encode('UTF-8'))
+            self.wfile.write('</body></html>'.encode('UTF-8'))
             return
 
 
@@ -61,8 +63,8 @@ def main():
 
     global img
     try:
-        server = ThreadedHTTPServer(('localhost', 8081), CamHandler)
-        print("server started at http://127.0.0.1:8081/cam.html")
+        server = ThreadedHTTPServer((address, port), CamHandler)
+        print('server started at http://' + address + ':' + str(port) + '/cam.html')
         server.serve_forever()
     except KeyboardInterrupt:
         capture.release()
