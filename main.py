@@ -21,12 +21,10 @@ turret_cap = None
 intake_cap = None
 
 
-def init_cap():
+def init_turret_cap():
     global turret_cap
-    global intake_cap
 
     is_turret_cap = turret_cap is not None and turret_cap.isOpened()
-    is_intake_cap = intake_cap is not None and intake_cap.isOpened()
 
     if not is_turret_cap:
         turret_cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
@@ -35,6 +33,12 @@ def init_cap():
         
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
+
+
+def init_intake_cap():
+    global intake_cap
+
+    is_intake_cap = intake_cap is not None and intake_cap.isOpened()
 
     if not is_intake_cap:
         intake_cap = cv2.VideoCapture('/dev/cam/intake', cv2.CAP_V4L)
@@ -47,21 +51,48 @@ def init_cap():
 turret = Turret()
 intake = Intake()
 
-# Init stream objects (initialized below)
-turret_stream = None
-intake_stream = None
+
+# Constants
+turret_address = '10.1.92.94'
+turret_port = 5800
+
+intake_address = '10.1.92.94'
+intake_port = 5801
 
 
-# Helper classes for running STREAM
+# Start intake and turret camera servers
+def start_turret_stream():
+
+    try:
+        server = ThreadedHTTPServer((turret_address, turret_port), TurretCamHandler)
+        print('server started at http://' + turret_address + ':' + turret_port + '/cam.html')
+        server.serve_forever()
+
+    except KeyboardInterrupt:
+        server.socket.close()
+
+
+def start_intake_stream():
+
+    try:
+        server = ThreadedHTTPServer((intake_address, intake_port), IntakeCamHandler)
+        print('server started at http://' + intake_address + ':' + intake_port + '/cam.html')
+        server.serve_forever()
+
+    except KeyboardInterrupt:
+        server.socket.close()
+
+
+turret_vision_status = False
+turret_theta = 0
+hub_distance = 0
+ball_detected = False
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
 
-class CamHandler(BaseHTTPRequestHandler):
-
-    def __init__(self):
-        self.frame = None
+class TurretCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.endswith('.mjpg'):
@@ -71,20 +102,34 @@ class CamHandler(BaseHTTPRequestHandler):
                 'multipart/x-mixed-replace; boundary=--jpgboundary'
             )
             self.end_headers()
+
+            global turret_vision_status, turret_theta, hub_distance
+
             while True:
                 try:
+                    init_turret_cap()
 
-                    if self.frame is not None:
+                    # Run turret pipeline
+                    ret, turret_frame = turret_cap.read()
+                    turret_vision_status = False
+                    turret_theta = 0
+                    hub_distance = 0
+
+                    if not ret:
                         continue
 
-                        img_str = cv2.imencode('.jpg', self.frame)[1].tobytes()
+                    # Do this out here instead of in turret.py so that the frame gets preserved
+                    turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
+                    turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
 
-                        self.send_header('Content-type', 'image/jpeg')
-                        self.send_header('Content-length', len(img_str))
-                        self.end_headers()
+                    img_str = cv2.imencode('.jpg', turret_frame)[1].tobytes()
 
-                        self.wfile.write(img_str)
-                        self.wfile.write(b"\r\n--jpgboundary\r\n")
+                    self.send_header('Content-type', 'image/jpeg')
+                    self.send_header('Content-length', len(img_str))
+                    self.end_headers()
+
+                    self.wfile.write(img_str)
+                    self.wfile.write(b"\r\n--jpgboundary\r\n")
 
                 except KeyboardInterrupt:
                     self.wfile.write(b"\r\n--jpgboundary--\r\n")
@@ -97,40 +142,63 @@ class CamHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b'<html><head></head><body>')
-            self.wfile.write(b'<img src="http://127.0.0.1:8081/cam.mjpg"/>')
-            self.wfile.write(b'</body></html>')
+            self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
+            self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam.mjpg"/>').encode('UTF-8'))
+            self.wfile.write('</body></html>'.encode('UTF-8'))
             return
 
 
-# Start intake and turret camera servers
-def start_turret_stream():
-    global turret_stream
-
-    try:
-        turret_stream = CamHandler()
-
-        server = ThreadedHTTPServer(('localhost', 8081), turret_stream)
-        print("server started at http://127.0.0.1:8081/cam.html")
-        server.serve_forever()
-
-    except KeyboardInterrupt:
-        server.socket.close()
+class IntakeCamHandler(BaseHTTPRequestHandler):
 
 
-# Start intake and turret camera servers
-def start_intake_stream():
-    global intake_stream
+    def do_GET(self):
+        if self.path.endswith('.mjpg'):
+            self.send_response(200)
+            self.send_header(
+                'Content-type',
+                'multipart/x-mixed-replace; boundary=--jpgboundary'
+            )
+            self.end_headers()
 
-    try:
-        intake_stream = CamHandler()
+            global ball_detected
 
-        server = ThreadedHTTPServer(('localhost', 8082), intake_stream)
-        print("server started at http://127.0.0.1:8082/cam.html")
-        server.serve_forever()
+            while True:
+                try:
+                    init_intake_cap()
 
-    except KeyboardInterrupt:
-        server.socket.close()
+                    # Run intake pipeline
+                    ret, intake_frame = intake_cap.read()
+                    ball_detected = False
+
+                    if not ret:
+                        continue
+
+                    ball_detected = intake.process(intake_frame)
+
+                    img_str = cv2.imencode('.jpg', intake_frame)[1].tobytes()
+
+                    self.send_header('Content-type', 'image/jpeg')
+                    self.send_header('Content-length', len(img_str))
+                    self.end_headers()
+
+                    self.wfile.write(img_str)
+                    self.wfile.write(b"\r\n--jpgboundary\r\n")
+
+                except KeyboardInterrupt:
+                    self.wfile.write(b"\r\n--jpgboundary--\r\n")
+                    break
+                except BrokenPipeError:
+                    continue
+            return
+
+        if self.path.endswith('.html'):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
+            self.wfile.write(('<img src="http://' + intake_address + ':' + str(intake_port) + '/cam.mjpg"/>').encode('UTF-8'))
+            self.wfile.write('</body></html>'.encode('UTF-8'))
+            return
 
 
 # Loop to connect to socket
@@ -156,27 +224,6 @@ while True:
 
                 # Loop to run everything
                 while True:
-                    init_cap()
-
-                    # Run turret pipeline
-                    ret, turret_frame = turret_cap.read()
-                    turret_vision_status = False
-                    turret_theta = 0
-                    hub_distance = 0
-
-                    if ret:
-                        # Do this out here instead of in turret.py so that the frame gets preserved
-                        turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
-                        turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
-                        turret_stream.frame = turret_frame
-
-                    # Run intake pipeline
-                    ret, intake_frame = intake_cap.read()
-                    ball_detected = False
-
-                    if ret:
-                        ball_detected = intake.process(intake_frame)
-                        intake_stream.frame = intake_frame
 
                     # Send data
                     conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
