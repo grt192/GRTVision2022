@@ -54,10 +54,10 @@ intake = Intake()
 
 # Constants
 turret_address = '10.1.92.94'
-turret_port = 5800
+turret_port = 5801
 
 intake_address = '10.1.92.94'
-intake_port = 5801
+intake_port = 5802
 
 
 # Start intake and turret camera servers
