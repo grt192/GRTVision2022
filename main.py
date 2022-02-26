@@ -27,6 +27,7 @@ def init_turret_cap():
     is_turret_cap = turret_cap is not None and turret_cap.isOpened()
 
     if not is_turret_cap:
+        print('turret cap not initialized, trying again')
         turret_cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
         turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
@@ -41,6 +42,7 @@ def init_intake_cap():
     is_intake_cap = intake_cap is not None and intake_cap.isOpened()
 
     if not is_intake_cap:
+        print('intake cap not initialized, trying again')
         intake_cap = cv2.VideoCapture('/dev/cam/intake', cv2.CAP_V4L)
 
         intake_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
@@ -64,8 +66,9 @@ intake_port = 5802
 def start_turret_stream():
 
     try:
+        print('starting turret stream THREAD')
         server = ThreadedHTTPServer((turret_address, turret_port), TurretCamHandler)
-        print('server started at http://' + turret_address + ':' + turret_port + '/cam.html')
+        print('server started at http://' + turret_address + ':' + str(turret_port) + '/cam.html')
         server.serve_forever()
 
     except KeyboardInterrupt:
@@ -75,8 +78,9 @@ def start_turret_stream():
 def start_intake_stream():
 
     try:
+        print('starting intake stream THREAD')
         server = ThreadedHTTPServer((intake_address, intake_port), IntakeCamHandler)
-        print('server started at http://' + intake_address + ':' + intake_port + '/cam.html')
+        print('server started at http://' + intake_address + ':' + str(intake_port) + '/cam.html')
         server.serve_forever()
 
     except KeyboardInterrupt:
@@ -216,11 +220,9 @@ while True:
                 # Start threads for streams
                 turret_thread = threading.Thread(target=start_turret_stream)
                 turret_thread.start()
-                turret_thread.join()
 
                 intake_thread = threading.Thread(target=start_intake_stream)
                 intake_thread.start()
-                intake_thread.join()
 
                 # Loop to run everything
                 while True:
