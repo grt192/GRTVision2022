@@ -99,6 +99,10 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class TurretCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
+        path_args = self.path.split('.')
+        arg = path_args[len(path_args) - 2] # eg. "cam" of cam.mjpg
+
+        # If getting a camera frame
         if self.path.endswith('.mjpg'):
             self.send_response(200)
             self.send_header(
@@ -126,13 +130,20 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
                     turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
 
-                    img_str = cv2.imencode('.jpg', turret_frame)[1].tobytes()
+                    if arg == 'cam':
+                        img_str = cv2.imencode('.jpg', turret_frame)[1].tobytes()
+                        self.send_header('Content-type', 'image/jpeg')
+                        self.send_header('Content-length', len(img_str))
+                        self.end_headers()
+                        self.wfile.write(img_str)
 
-                    self.send_header('Content-type', 'image/jpeg')
-                    self.send_header('Content-length', len(img_str))
-                    self.end_headers()
+                    elif arg == 'cam2':
+                        mask_img_str = cv2.imencode('.jpg', turret.masked_frame)[1].tobytes()
+                        self.send_header('Content-type', 'image/jpeg')
+                        self.send_header('Content-length', len(mask_img_str))
+                        self.end_headers()
+                        self.wfile.write(mask_img_str)
 
-                    self.wfile.write(img_str)
                     self.wfile.write(b"\r\n--jpgboundary\r\n")
 
                 except KeyboardInterrupt:
@@ -140,6 +151,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     break
                 except BrokenPipeError:
                     continue
+
             return
 
         if self.path.endswith('.html'):
@@ -148,6 +160,13 @@ class TurretCamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
             self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam.mjpg"/>').encode('UTF-8'))
+            self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam2.mjpg"/>').encode('UTF-8'))
+
+            # Add data via paragraph
+            self.wfile.write(('<p>Status: ' + turret_vision_status + '</p>').encode('UTF-8'))
+            self.wfile.write(('<p>Turret theta: ' + turret_theta + '</p>').encode('UTF-8'))
+            self.wfile.write(('<p>Hub dist: ' + hub_distance + '</p>').encode('UTF-8'))
+
             self.wfile.write('</body></html>'.encode('UTF-8'))
             return
 

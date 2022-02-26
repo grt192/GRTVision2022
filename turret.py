@@ -186,9 +186,6 @@ class Turret:
 
                         print(str(mid_x) + ', ' + str(mid_y))
 
-                        #cv2.circle(frame, [mid_x, mid_y], 100, (255, 255, 255), 2)
-
-
                     image_points = np.array(new_image_points)
                     print("5-pt image points: ")
                     print(image_points)
@@ -231,9 +228,9 @@ class Turret:
         cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2), (255, 255, 255), 2)
 
         # Draw text
-        utility.put_text_group(frame, ('Status: ' + str(self.turret_vision_status),
-                                       'Turret theta: ' + (str(self.turret_theta) if self.turret_vision_status else '---'),
-                                       'Hub dist: ' + (str(self.hub_distance) if self.turret_vision_status else '---')))
+        # utility.put_text_group(frame, ('Status: ' + str(self.turret_vision_status),
+                                       # 'Turret theta: ' + (str(self.turret_theta) if self.turret_vision_status else '---'),
+                                       # 'Hub dist: ' + (str(self.hub_distance) if self.turret_vision_status else '---')))
 
         # Return vision data
         return self.turret_vision_status, self.turret_theta, self.hub_distance
