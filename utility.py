@@ -10,7 +10,7 @@ def put_text_group(frame, text):
     offset = 5
 
     font = cv2.FONT_HERSHEY_PLAIN
-    font_scale = 1
+    font_scale = 0.7
     font_color = (255, 255, 255)
     font_thickness = 2
     text_x = offset

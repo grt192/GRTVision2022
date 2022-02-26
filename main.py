@@ -29,8 +29,8 @@ def init_turret_cap():
     if not is_turret_cap:
         print('turret cap not initialized, trying again')
         turret_cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
-        turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-        turret_cap.set(cv2.CAP_PROP_EXPOSURE, -10)
+        turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+        turret_cap.set(cv2.CAP_PROP_EXPOSURE, 10)  # 5 to 2000
         
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
