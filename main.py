@@ -111,6 +111,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
             )
             self.end_headers()
 
+            global turret_cap
             global turret_vision_status, turret_theta, hub_distance
 
             while True:
@@ -163,9 +164,9 @@ class TurretCamHandler(BaseHTTPRequestHandler):
             self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam2.mjpg"/>').encode('UTF-8'))
 
             # Add data via paragraph
-            self.wfile.write(('<p>Status: ' + turret_vision_status + '</p>').encode('UTF-8'))
-            self.wfile.write(('<p>Turret theta: ' + turret_theta + '</p>').encode('UTF-8'))
-            self.wfile.write(('<p>Hub dist: ' + hub_distance + '</p>').encode('UTF-8'))
+            self.wfile.write(('<p>Status: ' + str(turret_vision_status) + '</p>').encode('UTF-8'))
+            self.wfile.write(('<p>Turret theta: ' + str(turret_theta) + '</p>').encode('UTF-8'))
+            self.wfile.write(('<p>Hub dist: ' + str(hub_distance) + '</p>').encode('UTF-8'))
 
             self.wfile.write('</body></html>'.encode('UTF-8'))
             return
