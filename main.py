@@ -99,8 +99,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class TurretCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        path_args = self.path.split('.')
-        arg = path_args[len(path_args) - 2] # eg. "cam" of cam.mjpg
+        path_args = self.path.split('/')
+        arg = path_args[len(path_args) - 1] # eg. "cam" of cam.mjpg
+        arg = arg[0:(len(path_args) - 7)]
 
         # If getting a camera frame
         if self.path.endswith('.mjpg'):
