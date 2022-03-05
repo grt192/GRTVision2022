@@ -36,7 +36,7 @@ class Turret:
 
         self.new_camera_mtx = np.array([[675.45861816, 0., 342.68931859],
                                         [0., 674.16143799, 199.02914604],
-                                        [0., 0., 1., ]])
+                                        [0., 0., 1.]])
 
         # Vision constants
         self.hsv_lower = np.array([36, 99, 62])
@@ -191,6 +191,10 @@ class Turret:
                                                    flags=cv2.SOLVEPNP_P3P)
 
                 print("-- made it here")
+                print("rvecs for debugging")
+                print(rvecs)
+                print('tvecs')
+                print(tvecs)
 
                 # rvecs to rotation matrix by axis angle to 3 by 3
                 self.rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
