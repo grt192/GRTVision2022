@@ -40,6 +40,6 @@ class Intake:
         else:
             self.ball_detected = False
 
-        utility.put_text_group(frame, ('Balls? ' + str(self.ball_detected), ))
+        # utility.put_text_group(frame, ('Balls? ' + str(self.ball_detected), ))
 
         return self.ball_detected

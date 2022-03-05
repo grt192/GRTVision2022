@@ -99,9 +99,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class TurretCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        path_args = self.path.split('/')
-        arg = path_args[len(path_args) - 1] # eg. "cam" of cam.mjpg
-        arg = arg[0:(len(path_args) - 7)]
+        global turret_vision_status, turret_theta, hub_distance
 
         # If getting a camera frame
         if self.path.endswith('.mjpg'):
@@ -112,20 +110,23 @@ class TurretCamHandler(BaseHTTPRequestHandler):
             )
             self.end_headers()
 
-            global turret_cap
-            global turret_vision_status, turret_theta, hub_distance
+            # Split up HTTP URL to get camera requested
+            path_args = self.path.split('/')
+            arg = path_args[len(path_args) - 1]  # eg. "cam" of cam.mjpg
+            arg = arg[0:(len(path_args) - 7)]
 
+            global turret_cap
             while True:
                 try:
                     init_turret_cap()
 
                     # Run turret pipeline
                     ret, turret_frame = turret_cap.read()
-                    turret_vision_status = False
-                    turret_theta = 0
-                    hub_distance = 0
 
                     if not ret:
+                        turret_vision_status = False
+                        turret_theta = 0
+                        hub_distance = 0
                         continue
 
                     # Do this out here instead of in turret.py so that the frame gets preserved
@@ -175,8 +176,9 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
 class IntakeCamHandler(BaseHTTPRequestHandler):
 
-
     def do_GET(self):
+        global ball_detected
+
         if self.path.endswith('.mjpg'):
             self.send_response(200)
             self.send_header(
@@ -185,17 +187,15 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
             )
             self.end_headers()
 
-            global ball_detected
-
             while True:
                 try:
                     init_intake_cap()
 
                     # Run intake pipeline
                     ret, intake_frame = intake_cap.read()
-                    ball_detected = False
 
                     if not ret:
+                        ball_detected = False
                         continue
 
                     ball_detected = intake.process(intake_frame)
@@ -222,6 +222,7 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
             self.wfile.write(('<img src="http://' + intake_address + ':' + str(intake_port) + '/cam.mjpg"/>').encode('UTF-8'))
+            self.wfile.write(('<p>Balls? ' + str(ball_detected) + '</p>').encode('UTF-8'))
             self.wfile.write('</body></html>'.encode('UTF-8'))
             return
 
