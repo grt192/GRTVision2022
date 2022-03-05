@@ -162,7 +162,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
-            self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam.mjpg"/>').encode('UTF-8'))
+            self.wfile.write(('<img style="margin-right: 20px;" src="http://' + turret_address + ':' + str(turret_port) + '/cam.mjpg"/>').encode('UTF-8'))
             self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam2.mjpg"/>').encode('UTF-8'))
 
             # Add data via paragraph
