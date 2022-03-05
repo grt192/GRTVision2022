@@ -44,10 +44,7 @@ class Turret:
 
         self.cam_center = None
 
-        # Init vision data variables
-        self.reset_data()
-
-        # Pre-allocated frames
+        # Pre-allocated frames/arrays
         self.blur_frame = None
         self.hsv_frame = None
         self.mask = None
@@ -56,22 +53,16 @@ class Turret:
         self.rmatrix = None
         self.rmatrix_T = None
         self.tmatrix = None
+        self.rvecs = None
+        self.tvecs = None
 
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
 
-        theta = math.pi / 8
-        r = 53.13 / 2  # inches
-        '''
-        [r * math.cos(0), r * math.sin(0), 0],
-        [r * math.cos(theta), r * math.sin(theta), 0],
-        [r * math.cos(2 * theta), r * math.sin(2 * theta), 0],
-        [r * math.cos(3 * theta), r * math.sin(3 * theta), 0]
-        '''
-
-        # TEMP draw
-        # cv2.line(frame, (int(r * math.cos(0)), int(r * math.sin(0))), (int(r * math.cos(theta)), int(r * math.sin(theta))), (255, 255, 255), 2)
-        # cv2.line(frame, (int(r * math.cos(2 * theta)), int(r * math.sin(2 * theta))), (int(r * math.cos(3 * theta)), int(r * math.sin(3 * theta))), (255, 255, 255), 2)
+        # Init vision data
+        turret_vision_status = False
+        turret_theta = 0
+        hub_distance = 0
 
         # Get coordinates of the center of the frame
         if self.cam_center is None:
@@ -88,9 +79,10 @@ class Turret:
         self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
 
         # Erode and dilate mask to remove tiny noise
-        self.mask = cv2.erode(self.mask, None, iterations=1)
-
-        self.mask = cv2.dilate(self.mask, None, iterations=7)
+        # Sometimes comment it out. Erode and dilate may cause tape blobs disappear and/or become two large --> ie they
+        # become 1 contour instead of 4 distinct contours.
+        # self.mask = cv2.erode(self.mask, None, iterations=1)
+        # self.mask = cv2.dilate(self.mask, None, iterations=7)
 
         self.masked_frame = cv2.bitwise_and(self.hsv_frame, self.hsv_frame, mask=self.mask)
 
@@ -107,69 +99,69 @@ class Turret:
             for c in contours:
                 m = cv2.moments(c)
                 if m["m00"] != 0:
+
+                    # CONTOUR FILTERING
+                    # Ignore tiny blobs of noise
+                    if cv2.contourArea(c) <= 5:
+                        print('Filtered out a tiny noise blob')
+                        continue
+                    _, _, w, h = cv2.boundingRect(c)
+
+                    # Ignore contours that don't fill up much of their bounding rect
+                    if cv2.contourArea(c) < w * h * 0.75:
+                        print('Filtered out a blob w/ bad fill')
+                        continue
+
                     cx = int(m["m10"] / m["m00"])
                     cy = int(m["m01"] / m["m00"])
-
                     center = [cx, cy]
-                    # Array of contour and center
-                    output.append([c, cx, cy, center])
 
+                    # Append acceptable contours to list
+                    output.append([c, cx, cy, center])
                     image_points.append(center)
 
-            # Sort output by center x of contour
-            # TODO sort by area
+            # Sort output by center x of contour (ascending)
             output.sort(key=lambda a: a[1])
 
             # Sort image points by center x of contour
-            image_points.sort(key=lambda b: b[0])
-
-            # Cut down the number of contours to either 4 or 5
-            print(len(image_points))
+            image_points.sort(key=lambda a: a[0])
 
             # Reformat image_points array
             image_points = np.array(image_points, np.float32)
 
+            print('# contours after filtering: ' + str(len(image_points)))
+            '''
             if len(image_points) > 5:
-                print("trying to truncate")
+                print("More than 5 tapes found, truncating to 4")
                 image_points = image_points[len(image_points) - 4:len(image_points)]
                 output = output[len(output) - 4:len(output)]
+            '''
 
             # Draw bounding boxes for the contours
             for o in output:
                 x, y, w, h = cv2.boundingRect(o[0])
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-            # Calibrate in real time using rvecs and tvecs
-            # Check the number of contours and use the appropriate obj_points
-
             try:
-
-                # Sanity check
+                # Check # of contours; sanity check
                 if len(image_points) < 4 or len(image_points) > 5:
-                    print("length of contours array BAD")
-                    # raise
-                    self.reset_data()
-                    return self.turret_vision_status, self.turret_theta, self.hub_distance
+                    print("# contours is BAD; not 4 or 5")
+                    raise
 
-                print("sanity check passed")
-
+                print('Calculating hub dist...')
                 # Else, calculate distance to hub
-                obj_points = self.obj_points4  # if (len(image_points) == 4) else self.obj_points5
-                print(obj_points)
-                print(len(obj_points))
-                print(len(image_points))
-                print(obj_points.shape)
-                print(image_points.shape)
+                obj_points = self.obj_points4
 
                 if len(image_points) == 4:
-                    print("4 pt img points ")
-                    print(image_points)
+                    print("4 points")
+                    # Solve PNP with the 4 image points
                     _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
                                                    cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
                                                    flags=cv2.SOLVEPNP_P3P)
-                else:  # elif len(image_points) == 5:
-                    print("length 5")
+                else:
+                    print("5 points")
 
+                    # Calculate a 4 image point array from 5 using midpoints of gaps between the tape pieces
                     new_image_points = np.zeros((4, 2), np.float32)
 
                     for i in range(3):
@@ -177,24 +169,19 @@ class Turret:
                         mid_y = (image_points[i][1] + image_points[i + 1][1]) / 2
                         new_image_points[i, 0] = mid_x
                         new_image_points[i, 1] = mid_y
-
-                        print(str(mid_x) + ', ' + str(mid_y))
-
+                    # Transfer new array over
                     image_points = np.array(new_image_points)
-                    print("5-pt image points: ")
-                    print(image_points)
 
-                    # TODO some potential issues: camera matrix (use the one from the turret camera), 90 degree rot??
-                    # TODO 5 pt does not work
-                    _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
+                    # Solve PNP
+                    _, self.rvecs, self.tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
                                                    cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
                                                    flags=cv2.SOLVEPNP_P3P)
 
-                print("-- made it here")
-                print("rvecs for debugging")
-                print(rvecs)
-                print('tvecs')
-                print(tvecs)
+                print('Successfully solve PNPed')
+                print('print rvecs for debugging angle calculation')
+                print(self.rvecs)
+                print('print tvecs')
+                print(self.tvecs)
 
                 # rvecs to rotation matrix by axis angle to 3 by 3
                 self.rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
@@ -202,43 +189,33 @@ class Turret:
                 self.tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
                 real_cam_center = np.matmul(-self.rmatrix_T, self.tmatrix)
 
-                # Calculate turret theta (not actually an angle, more like pixel distance)
+                # TODO Calculate turret theta (not actually an angle, more like pixel distance)
                 # Calculate midpoint between leftmost and rightmost contour
                 left_x = image_points[0][0]
                 right_x = image_points[len(image_points) - 1][0]
 
                 midpoint = (left_x + right_x) / 2
-                self.turret_theta = midpoint - self.cam_center[0]
 
                 # Vision data to pass
-                self.turret_vision_status = True
-                self.hub_distance = real_cam_center[1][0]
+                turret_theta = midpoint - self.cam_center[0]
+                turret_vision_status = True
+                hub_distance = real_cam_center[1][0]
 
             except Exception as e:  # Leave if solvePNP doesn't work (ie. no contours detected)
                 traceback.print_exc()
-                print("ERROR while finding contours")
-                self.reset_data()
-
-        else:
-            self.reset_data()
+                print("Exception while finding contours")
 
         # Draw reference lines (center line)
         cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2),
                  (255, 255, 255), 2)
 
         # Draw text
-        # utility.put_text_group(frame, ('Status: ' + str(self.turret_vision_status),
-        # 'Turret theta: ' + (str(self.turret_theta) if self.turret_vision_status else '---'),
-        # 'Hub dist: ' + (str(self.hub_distance) if self.turret_vision_status else '---')))
+        # utility.put_text_group(frame, ('Status: ' + str(turret_vision_status),
+        # 'Turret theta: ' + (str(turret_theta) if turret_vision_status else '---'),
+        # 'Hub dist: ' + (str(hub_distance) if turret_vision_status else '---')))
 
         # Return vision data
-        return self.turret_vision_status, self.turret_theta, self.hub_distance
-
-    # Initialize the vision data variables
-    def reset_data(self):
-        self.turret_vision_status = False
-        self.turret_theta = 0
-        self.hub_distance = 0
+        return turret_vision_status, turret_theta, hub_distance
 
     def set_hsv(self, new_lower, new_upper):
         self.hsv_lower = new_lower
