@@ -14,34 +14,31 @@ class Turret:
         r = 53.13 / 2  # inches
         # 3D points in real world space
         self.obj_points4 = np.array([[r * math.cos(0), r * math.sin(0), 0],
-                                 [r * math.cos(theta), r * math.sin(theta), 0],
-                                 [r * math.cos(2 * theta), r * math.sin(2 * theta), 0],
-                                 [r * math.cos(3 * theta), r * math.sin(3 * theta), 0]], np.float32)
+                                     [r * math.cos(theta), r * math.sin(theta), 0],
+                                     [r * math.cos(2 * theta), r * math.sin(2 * theta), 0],
+                                     [r * math.cos(3 * theta), r * math.sin(3 * theta), 0]], np.float32)
 
         theta_start = 3 * math.pi / 16
 
-
         self.obj_points5 = np.array([[r * math.cos(theta_start), r * math.sin(theta_start), 0],
-                                 [r * math.cos(theta_start + theta), r * math.sin(theta_start + theta), 0],
-                                 [r * math.cos(theta_start + 2 * theta), r * math.sin(theta_start + 2 * theta), 0],
-                                 [r * math.cos(theta_start + 3 * theta), r * math.sin(theta_start + 3 * theta), 0],
-                                 [r * math.cos(theta_start + 4 * theta), r * math.sin(theta_start + 4 * theta), 0]],
-                               np.float32)
+                                     [r * math.cos(theta_start + theta), r * math.sin(theta_start + theta), 0],
+                                     [r * math.cos(theta_start + 2 * theta), r * math.sin(theta_start + 2 * theta), 0],
+                                     [r * math.cos(theta_start + 3 * theta), r * math.sin(theta_start + 3 * theta), 0],
+                                     [r * math.cos(theta_start + 4 * theta), r * math.sin(theta_start + 4 * theta), 0]],
+                                    np.float32)
 
+        # Calibration camera matrices for the TURRET camera (error = 0.05089120586524974)
+        self.camera_mtx = np.array([[681.12589498, 0., 341.75575426],
+                                    [0., 679.81937442, 202.55395243],
+                                    [0., 0., 1.]])
 
-        # Calibration
-        self.camera_mtx = np.array([[691.0036837, 0, 321.09540873],
-                                   [0, 679.96569767, 211.53434312],
-                                   [0, 0, 1]])
+        self.distortion = np.array([0.16170759, -1.11019546, -0.00809921, 0.00331081, 1.83787388])
 
-        self.distortion = np.array([0.10758992, -0.77644608, -0.00262037, -0.00947057,  1.16729517])
-
-        self.new_camera_mtx = np.array([[683.24865723, 0, 315.31818897],
-                                        [0, 667.2901001, 209.99858588],
-                                        [0, 0, 1]])
+        self.new_camera_mtx = np.array([[675.45861816, 0., 342.68931859],
+                                        [0., 674.16143799, 199.02914604],
+                                        [0., 0., 1., ]])
 
         # Vision constants
-        # TODO add HSV adjustment over TCP
         self.hsv_lower = np.array([36, 99, 62])
         self.hsv_upper = np.array([97, 255, 255])
 
@@ -75,7 +72,6 @@ class Turret:
         # TEMP draw
         # cv2.line(frame, (int(r * math.cos(0)), int(r * math.sin(0))), (int(r * math.cos(theta)), int(r * math.sin(theta))), (255, 255, 255), 2)
         # cv2.line(frame, (int(r * math.cos(2 * theta)), int(r * math.sin(2 * theta))), (int(r * math.cos(3 * theta)), int(r * math.sin(3 * theta))), (255, 255, 255), 2)
-
 
         # Get coordinates of the center of the frame
         if self.cam_center is None:
@@ -143,7 +139,6 @@ class Turret:
                 x, y, w, h = cv2.boundingRect(o[0])
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-
             # Calibrate in real time using rvecs and tvecs
             # Check the number of contours and use the appropriate obj_points
 
@@ -158,9 +153,8 @@ class Turret:
 
                 print("sanity check passed")
 
-
                 # Else, calculate distance to hub
-                obj_points = self.obj_points4 # if (len(image_points) == 4) else self.obj_points5
+                obj_points = self.obj_points4  # if (len(image_points) == 4) else self.obj_points5
                 print(obj_points)
                 print(len(obj_points))
                 print(len(image_points))
@@ -173,7 +167,7 @@ class Turret:
                     _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
                                                    cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
                                                    flags=cv2.SOLVEPNP_P3P)
-                else: # elif len(image_points) == 5:
+                else:  # elif len(image_points) == 5:
                     print("length 5")
 
                     new_image_points = np.zeros((4, 2), np.float32)
@@ -225,12 +219,13 @@ class Turret:
             self.reset_data()
 
         # Draw reference lines (center line)
-        cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2), (255, 255, 255), 2)
+        cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2),
+                 (255, 255, 255), 2)
 
         # Draw text
         # utility.put_text_group(frame, ('Status: ' + str(self.turret_vision_status),
-                                       # 'Turret theta: ' + (str(self.turret_theta) if self.turret_vision_status else '---'),
-                                       # 'Hub dist: ' + (str(self.hub_distance) if self.turret_vision_status else '---')))
+        # 'Turret theta: ' + (str(self.turret_theta) if self.turret_vision_status else '---'),
+        # 'Hub dist: ' + (str(self.hub_distance) if self.turret_vision_status else '---')))
 
         # Return vision data
         return self.turret_vision_status, self.turret_theta, self.hub_distance
@@ -241,11 +236,9 @@ class Turret:
         self.turret_theta = 0
         self.hub_distance = 0
 
-
     def set_hsv(self, new_lower, new_upper):
         self.hsv_lower = new_lower
         self.hsv_upper = new_upper
-
 
 
 # Pulled from imutils package definition
@@ -265,9 +258,9 @@ def grab_contours(cnts):
     # signature yet again and I have no idea WTH is going on
     else:
         raise Exception(("Contours tuple must have length 2 or 3, "
-            "otherwise OpenCV changed their cv2.findContours return "
-            "signature yet again. Refer to OpenCV's documentation "
-            "in that case"))
+                         "otherwise OpenCV changed their cv2.findContours return "
+                         "signature yet again. Refer to OpenCV's documentation "
+                         "in that case"))
 
     # return the actual contours array
     return cnts
