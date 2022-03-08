@@ -48,7 +48,6 @@ class Turret:
         self.blur_frame = None
         self.hsv_frame = None
         self.mask = None
-        self.masked_frame = None
 
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
@@ -78,8 +77,6 @@ class Turret:
         self.mask = cv2.erode(self.mask, None, iterations=1)
         self.mask = cv2.dilate(self.mask, None, iterations=3)
 
-        self.masked_frame = cv2.bitwise_and(self.hsv_frame, self.hsv_frame, mask=self.mask)
-
         # Grab contours
         contours = cv2.findContours(self.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = grab_contours(contours)
@@ -97,13 +94,11 @@ class Turret:
                     # CONTOUR FILTERING
                     # Ignore tiny blobs of noise
                     # if cv2.contourArea(c) <= 5:
-                        # print('Filtered out a tiny noise blob')
                         # continue
                     # _, _, w, h = cv2.boundingRect(c)
 
                     # Ignore contours that don't fill up much of their bounding rect
                     # if cv2.contourArea(c) < w * h * 0.75:
-                        # print('Filtered out a blob w/ bad fill')
                         # continue
 
                     cx = int(m["m10"] / m["m00"])
