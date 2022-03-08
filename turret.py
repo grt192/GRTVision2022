@@ -140,10 +140,10 @@ class Turret:
 
 
             # Sort output by center y of contour (ascending)
-            output.sort(key=lambda a: a[2])
+            output.sort(key=lambda a: a[2])  # Sort by y because hub is rotated 90
 
             # Sort image points by center y of contour
-            image_points.sort(key=lambda a: a[1])
+            image_points.sort(key=lambda a: a[1])  # Sort by y because hub is rotated 90
 
             # Reformat image_points array
             image_points = np.array(image_points, np.float32)
@@ -216,15 +216,18 @@ class Turret:
 
                     # TODO Calculate turret theta (not actually an angle, more like pixel distance)
                     # Calculate midpoint between leftmost and rightmost contour
-                    left_x = image_points[0][0]
-                    right_x = image_points[len(image_points) - 1][0]
+                    left_y = image_points[0][1]
+                    right_y = image_points[len(image_points) - 1][1]
 
-                    midpoint = (left_x + right_x) / 2
+                    midpoint_y = (left_y + right_y) / 2
 
                     # Vision data to pass
-                    turret_theta = midpoint - self.cam_center[0]
+                    turret_theta = midpoint_y - self.cam_center[1]
                     turret_vision_status = True
                     hub_distance = real_cam_center[1][0]
+
+                    # Try:
+                    self.get_ball_values_calib((image_points[0][0], midpoint_y))
 
             except Exception as e:  # Leave if solvePNP doesn't work (ie. no contours detected)
                 traceback.print_exc()
@@ -242,6 +245,83 @@ class Turret:
     def set_hsv(self, new_lower, new_upper):
         self.hsv_lower = new_lower
         self.hsv_upper = new_upper
+
+
+    '''
+    def get_ball_values(self, center, shape):
+        Calculate the angle and distance from the camera to the center point of the robot
+        This routine uses the FOV numbers and the default center to convert to normalized coordinates
+
+        # center is in pixel coordinates, 0,0 is the upper-left, positive down and to the right
+        # (nx,ny) = normalized pixel coordinates, 0,0 is the center, positive right and up
+        # WARNING: shape is (h, w, nbytes) not (w,h,...)
+        image_w = shape[1] / 2.0
+        image_h = shape[0] / 2.0
+
+        # NOTE: the 0.5 is to place the location in the center of the pixel
+        # print("center", center, "shape", shape)
+        nx = (center[0] - image_w + 0.5) / image_w
+        ny = (image_h - 0.5 - center[1]) / image_h
+
+        # convert normal pixel coords to pixel coords
+        x = BallFinder2020.VP_HALF_WIDTH * nx
+        y = BallFinder2020.VP_HALF_HEIGHT * ny
+        # print("values", center[0], center[1], nx, ny, x, y)
+
+        # now have all pieces to convert to angle:
+        ax = math.atan2(x, 1.0)     # horizontal angle
+
+        # naive expression
+        # ay = math.atan2(y, 1.0)     # vertical angle
+
+        # corrected expression.
+        # As horizontal angle gets larger, real vertical angle gets a little smaller
+        ay = math.atan2(y * math.cos(ax), 1.0)     # vertical angle
+        # print("ax, ay", math.degrees(ax), math.degrees(ay))
+
+        # now use the x and y angles to calculate the distance to the target:
+        d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ay)    # distance to the target
+
+        return ax, d    # return horizontal angle and distance
+'''
+    def get_ball_values_calib(self, center):
+        '''Calculate the angle and distance from the camera to the center point of the robot
+        This routine uses the cameraMatrix from the calibration to convert to normalized coordinates'''
+        '''
+        Everything's in radians ig. Except for print statements
+        '''
+
+        self.target_height = 99
+        self.camera_height = 20  # TODO fix
+        self.tilt_angle = math.radians(50)  # of camera
+
+        # use the distortion and camera arrays to correct the location of the center point
+        # got this from
+        #  https://stackoverflow.com/questions/8499984/how-to-undistort-points-in-camera-shot-coordinates-and-obtain-corresponding-undi
+
+        ptlist = np.array([[center]])
+        out_pt = cv2.undistortPoints(ptlist, self.new_camera_mtx, self.distortion, P=self.camera_mtx)
+        undist_center = out_pt[0, 0]
+
+        x_prime = (undist_center[0] - self.new_camera_mtx[0, 2]) / self.new_camera_mtx[0, 0]
+        y_prime = -(undist_center[1] - self.new_camera_mtx[1, 2]) / self.new_camera_mtx[1, 1]
+
+        # now have all pieces to convert to angle:
+        ax = math.atan2(x_prime, 1.0)     # horizontal angle (pitch)
+
+        # naive expression
+        ay = math.atan2(y_prime, 1.0)     # vertical angle (yaw)
+
+        # corrected expression.
+        # As horizontal angle gets larger, real vertical angle gets a little smaller
+        # ay = math.atan2(y_prime * math.cos(ax), 1.0)     # vertical angle
+
+        print("ax, ay", math.degrees(ax), math.degrees(ay))
+
+        # now use the x and y angles to calculate the distance to the target:
+        d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ax)    # distance to the target
+        print('d', d)
+        return ay, d    # return yaw angle and distance
 
 
 # Pulled from imutils package definition

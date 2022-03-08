@@ -139,7 +139,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     h, w, _ = turret_frame.shape
                     cam_x = int((w / 2) - 0.5)
                     cam_y = int((h / 2) - 0.5)
-                    cv2.line(turret_frame, (int(cam_x), 0), (int(cam_x), cam_y * 2),
+                    cv2.line(turret_frame, (0, cam_y), (w, cam_y),
                              (255, 255, 255), 2)
 
                     # OG image stream
