@@ -61,7 +61,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                 try:
 
                     # Run turret pipeline
-                    turret_frame = cv2.imread(cv2.samples.findFile("test.png"))
+                    turret_frame = cv2.imread(cv2.samples.findFile("images/test.png"))
 
                     if turret_frame is None:
                         turret_vision_status = False

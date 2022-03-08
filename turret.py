@@ -227,7 +227,8 @@ class Turret:
                     hub_distance = real_cam_center[1][0]
 
                     # Try:
-                    self.get_ball_values_calib((image_points[0][0], midpoint_y))
+                    ay, d = self.get_ball_values_calib((image_points[0][0], midpoint_y))
+                    turret_theta = ay
 
             except Exception as e:  # Leave if solvePNP doesn't work (ie. no contours detected)
                 traceback.print_exc()

@@ -16,11 +16,16 @@ PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
 
 stream_res = (160, 120)
 fps = 30
-
+'''
 turret_address = 'localhost'
 turret_port = 8081
 intake_address = 'localhost'
 intake_port = 8082
+'''
+turret_address = '10.1.92.94'
+turret_port = 5801
+intake_address = '10.1.92.94'
+intake_port = 5802
 
 # Init pipelines
 turret = Turret()
@@ -133,7 +138,8 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                     # Rotate the turret frame (for display)
                     # Do this out here instead of in turret.py so that the frame gets preserved
-                    turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
+                    # Commented out to fix weird flickering issues
+                    # turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
 
                     # Draw reference lines (center line)
                     h, w, _ = turret_frame.shape
