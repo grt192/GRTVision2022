@@ -50,12 +50,6 @@ class Turret:
         self.mask = None
         self.masked_frame = None
 
-        self.rmatrix = None
-        self.rmatrix_T = None
-        self.tmatrix = None
-        self.rvecs = None
-        self.tvecs = None
-
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
 
@@ -174,21 +168,21 @@ class Turret:
                     image_points = np.array(new_image_points)
 
                     # Solve PNP
-                    _, self.rvecs, self.tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
+                    _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
                                                    cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
                                                    flags=cv2.SOLVEPNP_P3P)
 
                 print('Successfully solve PNPed')
                 print('print rvecs for debugging angle calculation')
-                print(self.rvecs)
+                print(rvecs)
                 print('print tvecs')
-                print(self.tvecs)
+                print(tvecs)
 
                 # rvecs to rotation matrix by axis angle to 3 by 3
-                self.rmatrix, _ = cv2.Rodrigues(np.array([self.rvecs[0][0][0], self.rvecs[0][1][0], self.rvecs[0][2][0]], np.float32))
-                self.rmatrix_T = self.rmatrix.T
-                self.tmatrix = np.array([self.tvecs[0][0][0], self.tvecs[0][1][0], self.tvecs[0][2][0]], np.float32).reshape(3, 1)
-                real_cam_center = np.matmul(-self.rmatrix_T, self.tmatrix)
+                rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
+                rmatrix_T = rmatrix.T
+                tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
+                real_cam_center = np.matmul(-rmatrix_T, tmatrix)
 
                 # TODO Calculate turret theta (not actually an angle, more like pixel distance)
                 # Calculate midpoint between leftmost and rightmost contour
