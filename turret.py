@@ -173,10 +173,10 @@ class Turret:
                                                    flags=cv2.SOLVEPNP_P3P)
 
                 print('Successfully solve PNPed')
-                print('print rvecs for debugging angle calculation')
-                print(rvecs)
-                print('print tvecs')
-                print(tvecs)
+                # print('print rvecs for debugging angle calculation')
+                # print(rvecs)
+                # print('print tvecs')
+                # print(tvecs)
 
                 # rvecs to rotation matrix by axis angle to 3 by 3
                 rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
