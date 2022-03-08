@@ -254,12 +254,16 @@ while True:
 
                 # Loop to run everything
                 while True:
-                    # Send data
-                    conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+                    try:
+                        # Send data
+                        conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+                    except KeyboardInterrupt as e:
+                        stop.set()
+                        print('KeyboardInterrupt detected in inner main loop... breaking')
+                        break
 
     except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         print("Connection lost... retrying")
     except KeyboardInterrupt as e:
-        stop.set()
         print('KeyboardInterrupt detected in outer socket loop... breaking')
         break
