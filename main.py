@@ -132,6 +132,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     # Do this out here instead of in turret.py so that the frame gets preserved
                     turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
                     turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
+                    print((turret_vision_status, turret_theta, hub_distance))
 
                     if arg == 'cam':
                         img_str = cv2.imencode('.jpg', turret_frame)[1].tobytes()

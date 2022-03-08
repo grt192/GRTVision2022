@@ -81,8 +81,8 @@ class Turret:
         # Erode and dilate mask to remove tiny noise
         # Sometimes comment it out. Erode and dilate may cause tape blobs disappear and/or become two large --> ie they
         # become 1 contour instead of 4 distinct contours.
-        # self.mask = cv2.erode(self.mask, None, iterations=1)
-        # self.mask = cv2.dilate(self.mask, None, iterations=7)
+        self.mask = cv2.erode(self.mask, None, iterations=1)
+        self.mask = cv2.dilate(self.mask, None, iterations=3)
 
         self.masked_frame = cv2.bitwise_and(self.hsv_frame, self.hsv_frame, mask=self.mask)
 
@@ -102,15 +102,15 @@ class Turret:
 
                     # CONTOUR FILTERING
                     # Ignore tiny blobs of noise
-                    if cv2.contourArea(c) <= 5:
-                        print('Filtered out a tiny noise blob')
-                        continue
-                    _, _, w, h = cv2.boundingRect(c)
+                    # if cv2.contourArea(c) <= 5:
+                        # print('Filtered out a tiny noise blob')
+                        # continue
+                    # _, _, w, h = cv2.boundingRect(c)
 
                     # Ignore contours that don't fill up much of their bounding rect
-                    if cv2.contourArea(c) < w * h * 0.75:
-                        print('Filtered out a blob w/ bad fill')
-                        continue
+                    # if cv2.contourArea(c) < w * h * 0.75:
+                        # print('Filtered out a blob w/ bad fill')
+                        # continue
 
                     cx = int(m["m10"] / m["m00"])
                     cy = int(m["m01"] / m["m00"])
@@ -119,6 +119,7 @@ class Turret:
                     # Append acceptable contours to list
                     output.append([c, cx, cy, center])
                     image_points.append(center)
+
 
             # Sort output by center x of contour (ascending)
             output.sort(key=lambda a: a[1])
@@ -184,9 +185,9 @@ class Turret:
                 print(self.tvecs)
 
                 # rvecs to rotation matrix by axis angle to 3 by 3
-                self.rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
+                self.rmatrix, _ = cv2.Rodrigues(np.array([self.rvecs[0][0][0], self.rvecs[0][1][0], self.rvecs[0][2][0]], np.float32))
                 self.rmatrix_T = self.rmatrix.T
-                self.tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
+                self.tmatrix = np.array([self.tvecs[0][0][0], self.tvecs[0][1][0], self.tvecs[0][2][0]], np.float32).reshape(3, 1)
                 real_cam_center = np.matmul(-self.rmatrix_T, self.tmatrix)
 
                 # TODO Calculate turret theta (not actually an angle, more like pixel distance)
