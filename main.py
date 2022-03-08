@@ -31,7 +31,7 @@ def init_turret_cap():
         turret_cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
         turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, 10)  # 5 to 2000
-        
+
         turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
 
@@ -65,27 +65,29 @@ intake_port = 5802
 # Start intake and turret camera servers
 def start_turret_stream():
 
-    try:
-        print('starting turret stream THREAD')
-        server = ThreadedHTTPServer((turret_address, turret_port), TurretCamHandler)
-        print('server started at http://' + turret_address + ':' + str(turret_port) + '/cam.html')
-        server.serve_forever()
+    print('starting turret stream THREAD')
+    server = ThreadedHTTPServer((turret_address, turret_port), TurretCamHandler)
+    print('server started at http://' + turret_address + ':' + str(turret_port) + '/cam.html')
+    server.serve_forever()
 
-    except KeyboardInterrupt:
-        server.socket.close()
+    while True:
+        if stop.isSet():
+            server.socket.close()
 
 
 def start_intake_stream():
 
-    try:
-        print('starting intake stream THREAD')
-        server = ThreadedHTTPServer((intake_address, intake_port), IntakeCamHandler)
-        print('server started at http://' + intake_address + ':' + str(intake_port) + '/cam.html')
-        server.serve_forever()
+    print('starting intake stream THREAD')
+    server = ThreadedHTTPServer((intake_address, intake_port), IntakeCamHandler)
+    print('server started at http://' + intake_address + ':' + str(intake_port) + '/cam.html')
+    server.serve_forever()
 
-    except KeyboardInterrupt:
-        server.socket.close()
+    while True:
+        if stop.isSet():
+            server.socket.close()
 
+turret_frame = None
+intake_frame = None
 
 turret_vision_status = False
 turret_theta = 0
@@ -100,6 +102,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         global turret_vision_status, turret_theta, hub_distance
+        global turret_frame
 
         # If getting a camera frame
         if self.path.endswith('.mjpg'):
@@ -179,6 +182,7 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         global ball_detected
+        global intake_frame
 
         if self.path.endswith('.mjpg'):
             self.send_response(200)
@@ -229,6 +233,7 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
 
 
 # Loop to connect to socket
+stop = threading.Event()
 while True:
     try:
         print('Attempting to connect')
@@ -249,9 +254,12 @@ while True:
 
                 # Loop to run everything
                 while True:
-
                     # Send data
                     conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
 
     except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         print("Connection lost... retrying")
+    except KeyboardInterrupt as e:
+        stop.set()
+        print('KeyboardInterrupt detected in outer socket loop... breaking')
+        break
