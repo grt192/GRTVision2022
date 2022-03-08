@@ -52,8 +52,9 @@ def init_turret_cap():
         turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, 10)  # 5 to 2000
 
-        turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
-        turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
+        # Use default resolution to match calibrated camera matrix
+        # turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
+        # turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
 
 
 def init_intake_cap():
@@ -116,7 +117,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
-                    init_turret_cap()
+                    # init_turret_cap()
 
                     # Run turret pipeline
                     # ret, turret_frame = turret_cap.read()
@@ -129,10 +130,17 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                         hub_distance = 0
                         continue
 
-                    # Rotate the turret frame
+                    turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
+                    # Rotate the turret frame (for display)
                     # Do this out here instead of in turret.py so that the frame gets preserved
                     turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
-                    turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
+
+                    # Draw reference lines (center line)
+                    h, w, _ = turret_frame.shape
+                    cam_x = int((w / 2) - 0.5)
+                    cam_y = int((h / 2) - 0.5)
+                    cv2.line(turret_frame, (int(cam_x), 0), (int(cam_x), cam_y * 2),
+                             (255, 255, 255), 2)
 
                     # OG image stream
                     if arg == 'cam':

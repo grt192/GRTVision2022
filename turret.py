@@ -19,19 +19,39 @@ class Turret:
         theta = math.pi / 8  # radians
         r = 53.13 / 2  # inches
         # 3D points in real world space
-        self.obj_points4 = np.array([[r * math.cos(0), r * math.sin(0), 0],
-                                     [r * math.cos(theta), r * math.sin(theta), 0],
-                                     [r * math.cos(2 * theta), r * math.sin(2 * theta), 0],
-                                     [r * math.cos(3 * theta), r * math.sin(3 * theta), 0]], np.float32)
+        '''
+        self.obj_points4 = np.array([[r * math.cos(0), 0, -r * math.sin(0)],
+                                     [r * math.cos(theta), 0, -r * math.sin(theta)],
+                                     [r * math.cos(2 * theta), 0, -r * math.sin(2 * theta)],
+                                     [r * math.cos(3 * theta), 0, -r * math.sin(3 * theta)]], np.float32)
+        '''
+        '''
+        self.obj_points4 = np.array([[0, r * math.cos(0), r * math.sin(0)],
+                                     [0, r * math.cos(theta), r * math.sin(theta)],
+                                     [0, r * math.cos(2 * theta), r * math.sin(2 * theta)],
+                                     [0, r * math.cos(3 * theta), r * math.sin(3 * theta)]], np.float32)
+        '''
+        '''
+        self.obj_points4 = np.array([[0, r * math.sin(0), r * math.cos(0)],
+                                     [0, r * math.sin(theta), r * math.cos(theta)],
+                                     [0, r * math.sin(2 * theta), r * math.cos(2 * theta) ],
+                                     [0, r * math.sin(3 * theta), r * math.cos(3 * theta)]], np.float32)
+        '''
 
+        self.obj_points4 = np.array([[0, r * math.cos(0), -r * math.sin(0)],
+                              [0, r * math.cos(theta), -r * math.sin(theta)],
+                              [0, r * math.cos(2 * theta), -r * math.sin(2 * theta)],
+                              [0, r * math.cos(3 * theta), -r * math.sin(3 * theta)]], np.float32)
+
+        '''
         theta_start = 3 * math.pi / 16
-
         self.obj_points5 = np.array([[r * math.cos(theta_start), r * math.sin(theta_start), 0],
                                      [r * math.cos(theta_start + theta), r * math.sin(theta_start + theta), 0],
                                      [r * math.cos(theta_start + 2 * theta), r * math.sin(theta_start + 2 * theta), 0],
                                      [r * math.cos(theta_start + 3 * theta), r * math.sin(theta_start + 3 * theta), 0],
                                      [r * math.cos(theta_start + 4 * theta), r * math.sin(theta_start + 4 * theta), 0]],
                                     np.float32)
+        '''
 
         # Calibration camera matrices for the TURRET camera (error = 0.05089120586524974)
         # [[fx, 0, cx]
@@ -77,7 +97,7 @@ class Turret:
         self.blur_frame = cv2.blur(frame, (4, 4))
 
         # Filter using HSV mask
-        self.hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        self.hsv_frame = cv2.cvtColor(self.blur_frame, cv2.COLOR_BGR2HSV)
         self.mask = cv2.inRange(self.hsv_frame, self.hsv_lower, self.hsv_upper)
 
         # Erode and dilate mask to remove tiny noise
@@ -119,11 +139,11 @@ class Turret:
                     image_points.append(center)
 
 
-            # Sort output by center x of contour (ascending)
-            output.sort(key=lambda a: a[1])
+            # Sort output by center y of contour (ascending)
+            output.sort(key=lambda a: a[2])
 
-            # Sort image points by center x of contour
-            image_points.sort(key=lambda a: a[0])
+            # Sort image points by center y of contour
+            image_points.sort(key=lambda a: a[1])
 
             # Reformat image_points array
             image_points = np.array(image_points, np.float32)
@@ -145,68 +165,71 @@ class Turret:
                 # Check # of contours; sanity check
                 if len(image_points) < 4 or len(image_points) > 5:
                     print("# contours is BAD; not 4 or 5")
-                    raise
-
-                print('Calculating hub dist...')
-                # Else, calculate distance to hub
-                obj_points = self.obj_points4
-
-                if len(image_points) == 4:
-                    print("4 points")
-                    # Solve PNP with the 4 image points
-                    _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
-                                                   cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
-                                                   flags=cv2.SOLVEPNP_P3P)
                 else:
-                    print("5 points")
+                    print('Calculating hub dist...')
+                    # Else, calculate distance to hub
 
-                    # Calculate a 4 image point array from 5 using midpoints of gaps between the tape pieces
-                    new_image_points = np.zeros((4, 2), np.float32)
+                    if len(image_points) == 4:
+                        print("4 points")
+                        # Solve PNP with the 4 image points
+                        _, rvecs, tvecs = cv2.solveP3P(objectPoints=self.obj_points4, imagePoints=image_points,
+                                                       cameraMatrix=self.new_camera_mtx, distCoeffs=None,
+                                                       flags=cv2.SOLVEPNP_P3P)
+                    else:
+                        print("5 points")
 
-                    for i in range(3):
-                        mid_x = (image_points[i][0] + image_points[i + 1][0]) / 2
-                        mid_y = (image_points[i][1] + image_points[i + 1][1]) / 2
-                        new_image_points[i, 0] = mid_x
-                        new_image_points[i, 1] = mid_y
-                    # Transfer new array over
-                    image_points = np.array(new_image_points)
+                        # Calculate a 4 image point array from 5 using midpoints of gaps between the tape pieces
+                        new_image_points = np.zeros((4, 2), np.float32)
 
-                    # Solve PNP
-                    _, rvecs, tvecs = cv2.solveP3P(objectPoints=obj_points, imagePoints=image_points,
-                                                   cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
-                                                   flags=cv2.SOLVEPNP_P3P)
+                        for i in range(3):
+                            mid_x = (image_points[i][0] + image_points[i + 1][0]) / 2
+                            mid_y = (image_points[i][1] + image_points[i + 1][1]) / 2
+                            new_image_points[i, 0] = mid_x
+                            new_image_points[i, 1] = mid_y
+                        # Transfer new array over
+                        image_points = np.array(new_image_points)
 
-                print('Successfully solve PNPed')
-                # print('print rvecs for debugging angle calculation')
-                # print(rvecs)
-                # print('print tvecs')
-                # print(tvecs)
+                        # Solve PNP
+                        _, rvecs, tvecs = cv2.solveP3P(objectPoints=self.obj_points4, imagePoints=image_points,
+                                                       cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
+                                                       flags=cv2.SOLVEPNP_P3P)
 
-                # rvecs to rotation matrix by axis angle to 3 by 3
-                rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
-                rmatrix_T = rmatrix.T
-                tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
-                real_cam_center = np.matmul(-rmatrix_T, tmatrix)
+                    print('Successfully solve PNPed')
+                    print(rvecs)
 
-                # TODO Calculate turret theta (not actually an angle, more like pixel distance)
-                # Calculate midpoint between leftmost and rightmost contour
-                left_x = image_points[0][0]
-                right_x = image_points[len(image_points) - 1][0]
+                    # rvecs to rotation matrix by axis angle to 3 by 3
+                    # after Rodrigues:
+                    # [[0  -rz ry]
+                    #  [rz 0   -rx]
+                    #  [-ry, rx, 0]
+                    rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
+                    rmatrix_T = rmatrix.T
+                    tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
+                    real_cam_center = np.matmul(-rmatrix_T, tmatrix)
 
-                midpoint = (left_x + right_x) / 2
+                    '''
+                    print('print rmat for debugging angle calculation')
+                    print(rmatrix)
+                    print('print tmat')
+                    print(tmatrix)
+                    '''
 
-                # Vision data to pass
-                turret_theta = midpoint - self.cam_center[0]
-                turret_vision_status = True
-                hub_distance = real_cam_center[1][0]
+                    # TODO Calculate turret theta (not actually an angle, more like pixel distance)
+                    # Calculate midpoint between leftmost and rightmost contour
+                    left_x = image_points[0][0]
+                    right_x = image_points[len(image_points) - 1][0]
+
+                    midpoint = (left_x + right_x) / 2
+
+                    # Vision data to pass
+                    turret_theta = midpoint - self.cam_center[0]
+                    turret_vision_status = True
+                    hub_distance = real_cam_center[1][0]
 
             except Exception as e:  # Leave if solvePNP doesn't work (ie. no contours detected)
                 traceback.print_exc()
                 print("Exception while finding contours")
 
-        # Draw reference lines (center line)
-        cv2.line(frame, (int(self.cam_center[0]), 0), (int(self.cam_center[0]), self.cam_center[1] * 2),
-                 (255, 255, 255), 2)
 
         # Draw text
         # utility.put_text_group(frame, ('Status: ' + str(turret_vision_status),
