@@ -117,14 +117,14 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
-                    # init_turret_cap()
+                    init_turret_cap()
 
                     # Run turret pipeline
-                    # ret, turret_frame = turret_cap.read()
+                    ret, turret_frame = turret_cap.read()
 
-                    turret_frame = cv2.imread("test.png")
-                    # if not ret:
-                    if turret_frame is None:
+                    # turret_frame = cv2.imread("test.png")
+                    if not ret:
+                    # if turret_frame is None:
                         turret_vision_status = False
                         turret_theta = 0
                         hub_distance = 0
@@ -193,7 +193,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                 # TODO it creates a giant list but doesn't scroll at all
                 while True:
                     try:
-                        # Add data via paragraph (can directly access global data vars w/o global declartion)
+                        # Add data via paragraph (can directly access global data vars w/o global declaration)
                         self.wfile.write(('<p>(' + str(turret_vision_status) + ', ' + str(turret_theta) + ' deg, ' + str(hub_distance) + ')</p>').encode('UTF-8'))
                         self.wfile.write('</body></html>'.encode('UTF-8'))
                     except BrokenPipeError:
