@@ -4,6 +4,12 @@ import math
 import utility
 import traceback
 
+'''
+Potential issues with current implementation (why distance is off):
+- incorrect camera matrix; should have calibrated with the same resolution that we're capturing frames w/
+- wrong camera orientation; x is y and y is x which makes my brain hurt. I'm not sure if this changes the values that 
+come out of the matrix multiplication
+'''
 
 class Turret:
 
@@ -28,6 +34,9 @@ class Turret:
                                     np.float32)
 
         # Calibration camera matrices for the TURRET camera (error = 0.05089120586524974)
+        # [[fx, 0, cx]
+        #  [0, fy, cy]
+        #  [0, 0, 1]]
         self.camera_mtx = np.array([[681.12589498, 0., 341.75575426],
                                     [0., 679.81937442, 202.55395243],
                                     [0., 0., 1.]])

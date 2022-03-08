@@ -262,7 +262,7 @@ intake_thread.start()
 while True:
     try:
         # Send data
-        print((turret_vision_status, turret_theta, hub_distance, ball_detected))
+        # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
         pass
     except KeyboardInterrupt as e:
         turret_server.socket.close()
