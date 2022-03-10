@@ -18,6 +18,11 @@ imgpoints = []  # 2d points in image plane.
 
 cap = cv2.VideoCapture(1)
 
+# Print the image resolution for debugging
+_, img = cap.read()
+h, w, _ = img.shape
+print('Resolution: ' + str(w) + ' x ' + str(h))
+
 count = 0
 
 # Begin calibration

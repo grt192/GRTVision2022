@@ -10,7 +10,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
 
-
 # Constants
 stream_res = (160, 120)
 fps = 30
@@ -115,16 +114,16 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
-                    init_turret_cap()
+                    # init_turret_cap()
 
                     # Run turret pipeline
-                    ret, turret_frame = turret_cap.read()
+                    # ret, turret_frame = turret_cap.read()
 
-                    # turret_frame = cv2.imread("./images/test_187.png")
-                    # test_120 produces 106'' distance calc --> 14'' off
-                    # test_187 produces 146'' distance calc --> 21'' off
-                    if not ret:
-                    # if turret_frame is None:
+                    turret_frame = cv2.imread("./images/test_120.png")
+                    # test_120 produces 106'' distance calc --> 14'' off (130 using tvecs directly)
+                    # test_187 produces 146'' distance calc --> 21'' off (171'' using tvecs directly)
+                    # if not ret:
+                    if turret_frame is None:
                         turret_vision_status = False
                         turret_theta = 0
                         hub_distance = 0
@@ -173,6 +172,11 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                                   + '/cam.mjpg"/>').encode('UTF-8'))
                 self.wfile.write(('<img src="http://' + turret_address + ':' + str(turret_port) + '/cam2.mjpg"/>')
                                  .encode('UTF-8'))
+
+                if turret_frame is not None:
+                    h, w, _ = turret_frame.shape
+                    self.wfile.write(('<p>Resolution: ' + str(w) + 'x' + str(h) + '</p>')
+                                     .encode('UTF-8'))
                 self.wfile.write(('<embed type="text/html" src="http://' + turret_address + ':' + str(turret_port)
                                   + '/data.html" width="500" height="200">').encode('UTF-8'))
 
@@ -199,7 +203,6 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 class IntakeCamHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-
         if self.path.endswith('.mjpg'):
             self.send_response(200)
             self.send_header(

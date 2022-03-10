@@ -4,12 +4,6 @@ import math
 import utility
 import traceback
 
-'''
-Potential issues with current implementation (why distance is off):
-- incorrect camera matrix; should have calibrated with the same resolution that we're capturing frames w/
-- wrong camera orientation; x is y and y is x which makes my brain hurt. I'm not sure if this changes the values that 
-come out of the matrix multiplication
-'''
 
 class Turret:
 
@@ -84,7 +78,6 @@ class Turret:
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
 
-
         # Init vision data
         turret_vision_status = False
         turret_theta = 0
@@ -144,10 +137,12 @@ class Turret:
                     output.append([c, cx, cy, center, cv2.contourArea(c)])
 
             # Sort by area (descending) and truncate if needed
-            output.sort(key=lambda a: a[4])  # Sort by area
+            output.sort(key=lambda a: a[4], reverse=True)
+            theoretical_hub_x = output[0][1]
+
             if len(output) > 5:
-                print("More than 5 tapes found, truncating to 5")
-                output = output[len(output) - 5:len(output)]
+                print("More than 5 contours found, truncating to 3")
+                output = output[0:5]
 
             # Sort output by center y of contour (ascending)
             output.sort(key=lambda a: a[2])  # Sort by y because hub is rotated 90
@@ -160,12 +155,6 @@ class Turret:
             image_points = np.array(image_points, np.float32)
 
             print('# contours after filtering: ' + str(len(image_points)))
-            '''
-            if len(image_points) > 5:
-                print("More than 5 tapes found, truncating to 4")
-                image_points = image_points[len(image_points) - 4:len(image_points)]
-                output = output[len(output) - 4:len(output)]
-            '''
 
             # Draw bounding boxes for the contours
             for o in output:
@@ -176,10 +165,9 @@ class Turret:
                 # Check # of contours; sanity check
                 if len(image_points) < 4 or len(image_points) > 5:
                     print("# contours is BAD; not 4 or 5")
+                # If # contours is good, calculate distance to hub
                 else:
                     print('Calculating hub dist...')
-                    # Else, calculate distance to hub
-
                     if len(image_points) == 4:
                         print("4 points")
                         # Solve PNP with the 4 image points
@@ -206,7 +194,6 @@ class Turret:
                                                        flags=cv2.SOLVEPNP_P3P)
 
                     print('Successfully solve PNPed')
-                    print(rvecs)
 
                     # rvecs to rotation matrix by axis angle to 3 by 3
                     # after Rodrigues:
@@ -217,13 +204,6 @@ class Turret:
                     rmatrix_T = rmatrix.T
                     tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
                     real_cam_center = np.matmul(-rmatrix_T, tmatrix)
-
-                    '''
-                    print('print rmat for debugging angle calculation')
-                    print(rmatrix)
-                    print('print tmat')
-                    print(tmatrix)
-                    '''
 
                     # TODO Calculate turret theta (not actually an angle, more like pixel distance)
                     # Calculate midpoint between leftmost and rightmost contour
@@ -237,9 +217,13 @@ class Turret:
                     turret_vision_status = True
                     hub_distance = real_cam_center[1][0]
 
-                    # Try:
-                    ay, d = self.get_ball_values_calib((image_points[0][0], midpoint_y))
-                    turret_theta = ay
+                    # Try: TODO test it
+                    # Calib matrices method: calculate distance and pitch angle to target
+                    # Pass in a point at the center of the hub
+                    ay, d = self.get_ball_values_calib((theoretical_hub_x, midpoint_y))
+
+                    # Try: TODO test it
+                    a1, d = self.get_ball_values_from_tvec(tvecs)
 
             except Exception as e:  # Leave if solvePNP doesn't work (ie. no contours detected)
                 traceback.print_exc()
@@ -269,51 +253,26 @@ class Turret:
         self.hsv_upper = new_upper
 
 
-    '''
-    def get_ball_values(self, center, shape):
-        Calculate the angle and distance from the camera to the center point of the robot
-        This routine uses the FOV numbers and the default center to convert to normalized coordinates
+    def get_ball_values_from_tvec(self, tvec):
+        """ Ideally returns a distanc and pitch angle to target (ie. angle that the turret needs to rotate) but more
+        extensive testing is needed. Seems to produce error just like the matrix multiplication operation does."""
+        y = tvec[0][1][0]
+        z = tvec[0][2][0]
 
-        # center is in pixel coordinates, 0,0 is the upper-left, positive down and to the right
-        # (nx,ny) = normalized pixel coordinates, 0,0 is the center, positive right and up
-        # WARNING: shape is (h, w, nbytes) not (w,h,...)
-        image_w = shape[1] / 2.0
-        image_h = shape[0] / 2.0
+        # Pythagorean theorem using y and z position (not x and z because target is rotated 90)
+        a1 = math.atan2(y, z)
+        d = math.sqrt(y ** 2 + z ** 2)
 
-        # NOTE: the 0.5 is to place the location in the center of the pixel
-        # print("center", center, "shape", shape)
-        nx = (center[0] - image_w + 0.5) / image_w
-        ny = (image_h - 0.5 - center[1]) / image_h
+        print('a1, d', a1, d)
 
-        # convert normal pixel coords to pixel coords
-        x = BallFinder2020.VP_HALF_WIDTH * nx
-        y = BallFinder2020.VP_HALF_HEIGHT * ny
-        # print("values", center[0], center[1], nx, ny, x, y)
+        return a1, d
 
-        # now have all pieces to convert to angle:
-        ax = math.atan2(x, 1.0)     # horizontal angle
-
-        # naive expression
-        # ay = math.atan2(y, 1.0)     # vertical angle
-
-        # corrected expression.
-        # As horizontal angle gets larger, real vertical angle gets a little smaller
-        ay = math.atan2(y * math.cos(ax), 1.0)     # vertical angle
-        # print("ax, ay", math.degrees(ax), math.degrees(ay))
-
-        # now use the x and y angles to calculate the distance to the target:
-        d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ay)    # distance to the target
-
-        return ax, d    # return horizontal angle and distance
-'''
     def get_ball_values_calib(self, center):
-        '''Calculate the angle and distance from the camera to the center point of the robot
-        This routine uses the cameraMatrix from the calibration to convert to normalized coordinates'''
-        '''
-        Everything's in radians ig. Except for print statements
-        '''
+        """Calculate the angle and distance from the camera to the center point of the robot
+        This routine uses the cameraMatrix from the calibration to convert to normalized coordinates"""
+        ''' Everything's in radians ig. Except for print statements '''
 
-        self.target_height = 99
+        self.target_height = 8 * 12 + 8
         self.camera_height = 28
         self.tilt_angle = math.radians(50)  # of camera
 
@@ -325,20 +284,22 @@ class Turret:
         out_pt = cv2.undistortPoints(ptlist, self.new_camera_mtx, self.distortion, P=self.camera_mtx)
         undist_center = out_pt[0, 0]
 
-        x_prime = (undist_center[0] - self.new_camera_mtx[0, 2]) / self.new_camera_mtx[0, 0]
+        # x prime (along yaw to the hub. yes, yaw)
+        x_prime = -(undist_center[0] - self.new_camera_mtx[0, 2]) / self.new_camera_mtx[0, 0]
+        # y (pitch to the hub)
         y_prime = -(undist_center[1] - self.new_camera_mtx[1, 2]) / self.new_camera_mtx[1, 1]
 
         # now have all pieces to convert to angle:
-        ax = math.atan2(x_prime, 1.0)     # horizontal angle (pitch)
+        ax = math.atan2(x_prime, 1.0)  # x horizontal angle (but actually yaw to hub)
 
         # naive expression
-        ay = math.atan2(y_prime, 1.0)     # vertical angle (yaw)
+        # ay = math.atan2(y_prime, 1.0)  # y vertical angle (but actually pitch to the hub)
 
         # corrected expression.
         # As horizontal angle gets larger, real vertical angle gets a little smaller
-        # ay = math.atan2(y_prime * math.cos(ax), 1.0)     # vertical angle
+        ay = math.atan2(y_prime * math.cos(ax), 1.0)     # vertical angle
 
-        print("ax, ay", math.degrees(ax), math.degrees(ay))
+        print('ax, ay', math.degrees(ax), math.degrees(ay))
 
         # now use the x and y angles to calculate the distance to the target:
         d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ax)    # distance to the target
