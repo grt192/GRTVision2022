@@ -77,9 +77,13 @@ class Turret:
         self.blur_frame = None
         self.hsv_frame = None
         self.mask = None
+        self.masked_output = None
+
+        self.output_frame = None
 
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
+
 
         # Init vision data
         turret_vision_status = False
@@ -106,6 +110,8 @@ class Turret:
         self.mask = cv2.erode(self.mask, None, iterations=1)
         self.mask = cv2.dilate(self.mask, None, iterations=3)
 
+        self.masked_output = np.copy(self.mask)
+
         # Grab contours
         contours = cv2.findContours(self.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = grab_contours(contours)
@@ -122,9 +128,9 @@ class Turret:
 
                     # CONTOUR FILTERING
                     # Ignore tiny blobs of noise
-                    # if cv2.contourArea(c) <= 5:
-                        # continue
-                    # _, _, w, h = cv2.boundingRect(c)
+                    if cv2.contourArea(c) <= 5:
+                        continue
+                    _, _, w, h = cv2.boundingRect(c)
 
                     # Ignore contours that don't fill up much of their bounding rect
                     # if cv2.contourArea(c) < w * h * 0.75:
@@ -135,15 +141,20 @@ class Turret:
                     center = [cx, cy]
 
                     # Append acceptable contours to list
-                    output.append([c, cx, cy, center])
-                    image_points.append(center)
+                    output.append([c, cx, cy, center, cv2.contourArea(c)])
 
+            # Sort by area (descending) and truncate if needed
+            output.sort(key=lambda a: a[4])  # Sort by area
+            if len(output) > 5:
+                print("More than 5 tapes found, truncating to 5")
+                output = output[len(output) - 5:len(output)]
 
             # Sort output by center y of contour (ascending)
             output.sort(key=lambda a: a[2])  # Sort by y because hub is rotated 90
 
-            # Sort image points by center y of contour
-            image_points.sort(key=lambda a: a[1])  # Sort by y because hub is rotated 90
+            # Construct image points array
+            for o in output:
+                image_points.append(o[3])
 
             # Reformat image_points array
             image_points = np.array(image_points, np.float32)
@@ -240,6 +251,16 @@ class Turret:
         # 'Turret theta: ' + (str(turret_theta) if turret_vision_status else '---'),
         # 'Hub dist: ' + (str(hub_distance) if turret_vision_status else '---')))
 
+        # Draw reference lines (center line)
+        h, w, _ = frame.shape
+        cam_x = int((w / 2) - 0.5)
+        cam_y = int((h / 2) - 0.5)
+        cv2.line(frame, (0, cam_y), (w, cam_y),
+                 (255, 255, 255), 2)
+
+        # Copy to the output frame
+        self.output_frame = np.copy(frame)
+
         # Return vision data
         return turret_vision_status, turret_theta, hub_distance
 
@@ -293,7 +314,7 @@ class Turret:
         '''
 
         self.target_height = 99
-        self.camera_height = 20  # TODO fix
+        self.camera_height = 28
         self.tilt_angle = math.radians(50)  # of camera
 
         # use the distortion and camera arrays to correct the location of the center point

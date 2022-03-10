@@ -21,6 +21,7 @@ turret_address = 'localhost'
 turret_port = 8081
 intake_address = 'localhost'
 intake_port = 8082
+
 '''
 turret_address = '10.1.92.94'
 turret_port = 5801
@@ -127,7 +128,9 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     # Run turret pipeline
                     ret, turret_frame = turret_cap.read()
 
-                    # turret_frame = cv2.imread("test.png")
+                    # turret_frame = cv2.imread("./images/test_187.png")
+                    # test_120 produces 106'' distance calc --> 14'' off
+                    # test_187 produces 146'' distance calc --> 21'' off
                     if not ret:
                     # if turret_frame is None:
                         turret_vision_status = False
@@ -141,16 +144,10 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                     # Commented out to fix weird flickering issues
                     # turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
 
-                    # Draw reference lines (center line)
-                    h, w, _ = turret_frame.shape
-                    cam_x = int((w / 2) - 0.5)
-                    cam_y = int((h / 2) - 0.5)
-                    cv2.line(turret_frame, (0, cam_y), (w, cam_y),
-                             (255, 255, 255), 2)
 
                     # OG image stream
                     if arg == 'cam':
-                        img_str = cv2.imencode('.jpg', turret_frame)[1].tobytes()
+                        img_str = cv2.imencode('.jpg', turret.output_frame)[1].tobytes()
                         self.send_header('Content-type', 'image/jpeg')
                         self.send_header('Content-length', len(img_str))
                         self.end_headers()
@@ -158,7 +155,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
                     # 2nd image stream (helps with debugging)
                     elif arg == 'cam2':
-                        mask_img_str = cv2.imencode('.jpg', turret.mask)[1].tobytes()
+                        mask_img_str = cv2.imencode('.jpg', turret.masked_output)[1].tobytes()
                         self.send_header('Content-type', 'image/jpeg')
                         self.send_header('Content-length', len(mask_img_str))
                         self.end_headers()
@@ -264,25 +261,37 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
 
 
 # Loop to connect to socket
-
-# Start threads for streams
-turret_thread = threading.Thread(target=start_turret_stream)
-turret_thread.start()
-
-intake_thread = threading.Thread(target=start_intake_stream)
-intake_thread.start()
-
 # Loop to run everything
 while True:
     try:
-        # Send data
-        # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
-        pass
-    except KeyboardInterrupt as e:
-        turret_server.socket.close()
-        turret_server.shutdown()
-        intake_server.socket.close()
-        intake_server.shutdown()
-        print('KeyboardInterrupt detected in main... terminating')
-        break
+        print('Attempting to connect')
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((HOST, PORT))
+            s.listen()
+            conn, addr = s.accept()
+            with conn:
+                print('Connected by', addr)
+
+                # Start threads for streams
+                turret_thread = threading.Thread(target=start_turret_stream)
+                turret_thread.start()
+
+                intake_thread = threading.Thread(target=start_intake_stream)
+                intake_thread.start()
+
+                while True:
+                    try:
+                        # Send data
+                        conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+                        # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
+                        pass
+                    except KeyboardInterrupt as e:
+                        turret_server.socket.close()
+                        turret_server.shutdown()
+                        intake_server.socket.close()
+                        intake_server.shutdown()
+                        print('KeyboardInterrupt detected in main... terminating')
+                        break
+    except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
+        print('Connection lost... retrying')
 
