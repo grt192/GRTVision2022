@@ -17,7 +17,7 @@ class Turret:
 
         # For vision processing
         theta = math.pi / 8  # radians
-        r = 53.13 / 2  # inches
+        r = (4 * 12 + 5 + 3.0/8) / 2  # inches
         # 3D points in real world space
         '''
         self.obj_points4 = np.array([[r * math.cos(0), 0, -r * math.sin(0)],
@@ -69,7 +69,7 @@ class Turret:
 
         # Vision constants
         self.hsv_lower = np.array([36, 99, 62])
-        self.hsv_upper = np.array([97, 255, 255])
+        self.hsv_upper = np.array([97, 255, 180])
 
         self.cam_center = None
 
