@@ -10,23 +10,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
 
-# Constants
-HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
-PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
 
+# Constants
 stream_res = (160, 120)
 fps = 30
-'''
-turret_address = 'localhost'
-turret_port = 8081
-intake_address = 'localhost'
-intake_port = 8082
-
-'''
-turret_address = '10.1.92.94'
-turret_port = 5801
-intake_address = '10.1.92.94'
-intake_port = 5802
 
 # Init pipelines
 turret = Turret()
@@ -39,6 +26,10 @@ turret_frame = None
 intake_frame = None
 turret_cap = None
 intake_cap = None
+turret_address = None
+intake_address = None
+turret_port = None
+intake_port = None
 
 # Vision data to send
 turret_vision_status = False
@@ -58,7 +49,8 @@ def init_turret_cap():
         turret_cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
         turret_cap.set(cv2.CAP_PROP_EXPOSURE, 10)  # 5 to 2000
 
-        # Use default resolution to match calibrated camera matrix
+        # COMMENTED OUT Use default resolution to match calibrated camera matrix.
+        # Also higher resolution --> better distance calculations (probably idk)
         # turret_cap.set(cv2.CAP_PROP_FRAME_WIDTH, stream_res[0])
         # turret_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, stream_res[1])
 
@@ -171,7 +163,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
             return
 
         if self.path.endswith('.html'):
-            # Overall webpage that serves: images and data
+            # Overall webpage that serves everything: images and data
             if arg == 'cam':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
@@ -186,7 +178,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
                 self.wfile.write('</body></html>'.encode('UTF-8'))
                 return
-            # Webpage that serves the vision data
+            # Webpage that serves just the vision data
             elif arg == 'data':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
@@ -260,38 +252,38 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
             return
 
 
-# Loop to connect to socket
-# Loop to run everything
-while True:
-    try:
-        print('Attempting to connect')
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((HOST, PORT))
-            s.listen()
-            conn, addr = s.accept()
-            with conn:
-                print('Connected by', addr)
+def run(ip_address='localhost', ports=(8081, 8082), conn=None):
+    """ Run the vision pipelines and camera servers with streaming to specified address and port numbers.
+    params: str, tuple, conn obj or None
+    Example (for Jetson): ip_address="10.1.92.94", ports=(5081, 5082), conn=some connection object """
 
-                # Start threads for streams
-                turret_thread = threading.Thread(target=start_turret_stream)
-                turret_thread.start()
+    # Set ip address and ports
+    global turret_address, turret_port, intake_address, intake_port
+    turret_address = ip_address
+    turret_port = ports[0]
+    intake_address = ip_address
+    intake_port = ports[1]
 
-                intake_thread = threading.Thread(target=start_intake_stream)
-                intake_thread.start()
+    # Start threads for streams
+    turret_thread = threading.Thread(target=start_turret_stream)
+    turret_thread.start()
 
-                while True:
-                    try:
-                        # Send data
-                        conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
-                        # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
-                        pass
-                    except KeyboardInterrupt as e:
-                        turret_server.socket.close()
-                        turret_server.shutdown()
-                        intake_server.socket.close()
-                        intake_server.shutdown()
-                        print('KeyboardInterrupt detected in main... terminating')
-                        break
-    except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
-        print('Connection lost... retrying')
+    intake_thread = threading.Thread(target=start_intake_stream)
+    intake_thread.start()
 
+    while True:
+        try:
+            # Send data
+            if conn:
+                conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+            # Commented out cuz soooo many prints makes it harder to debug vision
+            # else:
+                # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
+        except KeyboardInterrupt as e:
+            turret_server.shutdown()
+            intake_server.shutdown()
+            print('KeyboardInterrupt detected in main... terminating')
+            break
+
+if __name__ == '__main__':
+    run()
