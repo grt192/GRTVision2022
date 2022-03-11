@@ -180,7 +180,7 @@ class Turret:
                         # Calculate a 4 image point array from 5 using midpoints of gaps between the tape pieces
                         new_image_points = np.zeros((4, 2), np.float32)
 
-                        for i in range(3):
+                        for i in range(4):
                             mid_x = (image_points[i][0] + image_points[i + 1][0]) / 2
                             mid_y = (image_points[i][1] + image_points[i + 1][1]) / 2
                             new_image_points[i, 0] = mid_x
@@ -266,6 +266,7 @@ class Turret:
         print('a1, d', a1, d)
 
         return a1, d
+
 
     def get_ball_values_calib(self, center):
         """Calculate the angle and distance from the camera to the center point of the robot
