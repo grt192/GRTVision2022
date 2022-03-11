@@ -17,7 +17,11 @@ while True:
                 print('Connected by', addr)
 
                 main.run(ip_address='10.1.92.94', ports=(5801, 5802), conn=conn)
+                # Terminate program if main completes
+                break
 
     except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
         print('Connection lost... retrying')
+    except KeyboardInterrupt as e:
+        break
 

@@ -18,16 +18,6 @@ PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
 stream_res = (160, 120)
 fps = 30
 
-turret_address = 'localhost'
-turret_port = 8081
-intake_address = 'localhost'
-intake_port = 8082
-'''
-turret_address = '10.1.92.94'
-turret_port = 5801
-intake_address = '10.1.92.94'
-intake_port = 5802
-'''
 # Init pipelines
 turret = Turret()
 intake = Intake()
@@ -265,61 +255,38 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
             return
 
 
-# Loop to connect to socket
-# Loop to run everything
-'''
-while True:
-    try:
-        print('Attempting to connect')
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((HOST, PORT))
-            s.listen()
-            conn, addr = s.accept()
-            with conn:
-                print('Connected by', addr)
+def run(ip_address='10.1.92.94', ports=(5801, 5802), conn=None):
+    global turret_address, turret_port, intake_address, intake_port
 
-                # Start threads for streams
-                turret_thread = threading.Thread(target=start_turret_stream)
-                turret_thread.start()
+    turret_address = ip_address
+    turret_port = ports[0]
+    intake_address = ip_address
+    intake_port = ports[1]
 
-                intake_thread = threading.Thread(target=start_intake_stream)
-                intake_thread.start()
+    # Start threads for streams
+    turret_thread = threading.Thread(target=start_turret_stream)
+    turret_thread.start()
 
-                while True:
-                    try:
-                        # Send data
-                        conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
-                        # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
-                        pass
-                    except KeyboardInterrupt as e:
-                        turret_server.socket.close()
-                        turret_server.shutdown()
-                        intake_server.socket.close()
-                        intake_server.shutdown()
-                        print('KeyboardInterrupt detected in main... terminating')
-                        break
-    except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
-        print('Connection lost... retrying')
+    intake_thread = threading.Thread(target=start_intake_stream)
+    intake_thread.start()
 
-'''
+    while True:
+        try:
+            # Send data
+            if conn:
+                conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+            else:
+                # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
+                pass
+            pass
+        except KeyboardInterrupt as e:
+            turret_server.socket.close()
+            turret_server.shutdown()
+            intake_server.socket.close()
+            intake_server.shutdown()
+            print('KeyboardInterrupt detected in main... terminating')
+            break
 
-# Start threads for streams
-turret_thread = threading.Thread(target=start_turret_stream)
-turret_thread.start()
 
-intake_thread = threading.Thread(target=start_intake_stream)
-intake_thread.start()
-
-while True:
-    try:
-        # Send data
-        # conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
-        # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
-        pass
-    except KeyboardInterrupt as e:
-        turret_server.socket.close()
-        turret_server.shutdown()
-        intake_server.socket.close()
-        intake_server.shutdown()
-        print('KeyboardInterrupt detected in main... terminating')
-        break
+if __name__ == '__main__':
+    run('localhost', (8081, 8082))
