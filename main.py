@@ -113,16 +113,16 @@ class TurretCamHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
-                    # init_turret_cap()
+                    init_turret_cap()
 
                     # Run turret pipeline
-                    # ret, turret_frame = turret_cap.read()
+                    ret, turret_frame = turret_cap.read()
 
-                    turret_frame = cv2.imread("./images/test_187.png")
+                    # turret_frame = cv2.imread("./images/83.5_9.0.png")
                     # test_120 produces 106'' distance calc --> 14'' off
                     # test_187 produces 146'' distance calc --> 21'' off
-                    # if not ret:
-                    if turret_frame is None:
+                    if not ret:
+                    # if turret_frame is None:
                         turret_vision_status = False
                         turret_theta = 0
                         hub_distance = 0
