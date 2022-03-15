@@ -16,6 +16,7 @@ turret = Turret()
 turret_address = 'localhost'
 turret_port = 8081
 
+
 # Start intake and turret camera servers
 def start_turret_stream():
     print('starting turret stream THREAD')
@@ -61,7 +62,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                 try:
 
                     # Run turret pipeline
-                    turret_frame = cv2.imread(cv2.samples.findFile("images/test.png"))
+                    turret_frame = cv2.imread(cv2.samples.findFile("images/83.5_9.0.png"))
 
                     if turret_frame is None:
                         turret_vision_status = False
@@ -70,19 +71,18 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                         continue
 
                     # Do this out here instead of in turret.py so that the frame gets preserved
-                    turret_frame = cv2.rotate(turret_frame, cv2.ROTATE_90_CLOCKWISE)
                     turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                     print((turret_vision_status, turret_theta, hub_distance))
 
                     if arg == 'cam':
-                        img_str = cv2.imencode('.jpg', turret_frame)[1].tobytes()
+                        img_str = cv2.imencode('.jpg', turret.output_frame)[1].tobytes()
                         self.send_header('Content-type', 'image/jpeg')
                         self.send_header('Content-length', len(img_str))
                         self.end_headers()
                         self.wfile.write(img_str)
 
                     elif arg == 'cam2':
-                        mask_img_str = cv2.imencode('.jpg', turret.masked_frame)[1].tobytes()
+                        mask_img_str = cv2.imencode('.jpg', turret.masked_output)[1].tobytes()
                         self.send_header('Content-type', 'image/jpeg')
                         self.send_header('Content-length', len(mask_img_str))
                         self.end_headers()

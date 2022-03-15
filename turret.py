@@ -62,8 +62,8 @@ class Turret:
                                         [0., 0., 1.]])
 
         # Vision constants
-        self.hsv_lower = np.array([36, 99, 90])
-        self.hsv_upper = np.array([97, 255, 180])
+        self.hsv_lower = np.array([36, 99, 70])
+        self.hsv_upper = np.array([97, 255, 255])
 
         self.cam_center = None
 
@@ -100,10 +100,10 @@ class Turret:
         # Erode and dilate mask to remove tiny noise
         # Sometimes comment it out. Erode and dilate may cause tape blobs disappear and/or become two large --> ie they
         # become 1 contour instead of 4 distinct contours.
-        self.mask = cv2.erode(self.mask, None, iterations=1)
-        self.mask = cv2.dilate(self.mask, None, iterations=3)
+        # self.mask = cv2.erode(self.mask, None, iterations=1)
+        # self.mask = cv2.dilate(self.mask, None, iterations=3)
 
-        self.mask = cv2.resize(self.mask, (0, 0), fx=0.25, fy=0.25)
+        # self.mask = cv2.resize(self.mask, (0, 0), fx=0.25, fy=0.25)
         self.masked_output = np.copy(self.mask)
 
         # Grab contours
@@ -112,23 +112,12 @@ class Turret:
 
         # Process contours
         output = []
-        image_points = []
 
         if len(contours) != 0:
             # Calculate center of each contour
             for c in contours:
                 m = cv2.moments(c)
                 if m["m00"] != 0:
-
-                    # CONTOUR FILTERING
-                    # Ignore tiny blobs of noise
-                    if cv2.contourArea(c) <= 5:
-                        continue
-                    _, _, w, h = cv2.boundingRect(c)
-
-                    # Ignore contours that don't fill up much of their bounding rect
-                    # if cv2.contourArea(c) < w * h * 0.75:
-                        # continue
 
                     cx = int(m["m10"] / m["m00"])
                     cy = int(m["m01"] / m["m00"])
@@ -137,116 +126,74 @@ class Turret:
                     # Append acceptable contours to list
                     output.append([c, cx, cy, center, cv2.contourArea(c)])
 
-            '''
-
-            # Sort by area (descending) and truncate if needed
-            output.sort(key=lambda a: a[4], reverse=True)
-
-            theoretical_hub_x = output[0][1]
-            if len(output) > 5:
-                print("More than 5 contours found, truncating to 3")
-                output = output[0:5]
-
-            # Sort output by center y of contour (ascending)
-            output.sort(key=lambda a: a[2])  # Sort by y because hub is rotated 90
-            '''
-
-            # Draw bounding boxes for the contours
-            for o in output:
-                x, y, w, h = cv2.boundingRect(o[0])
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            '''
-            
-            # Construct image points array
-            for o in output:
-                image_points.append(o[3])
-                
-             # Reformat image_points array
-            image_points = np.array(image_points, np.float32)
-
-            print('# contours after filtering: ' + str(len(image_points)))
-
-            try:
-                # Check # of contours; sanity check
-                if len(image_points) < 4 or len(image_points) > 5:
-                    print("# contours is BAD; not 4 or 5")
-                # If # contours is good, calculate distance to hub
-                else:
-                    print('Calculating hub dist...')
-                    if len(image_points) == 4:
-                        print("4 points")
-                        # Solve PNP with the 4 image points
-                        _, rvecs, tvecs = cv2.solveP3P(objectPoints=self.obj_points4, imagePoints=image_points,
-                                                       cameraMatrix=self.new_camera_mtx, distCoeffs=None,
-                                                       flags=cv2.SOLVEPNP_P3P)
-                    else:
-                        print("5 points")
-
-                        # Calculate a 4 image point array from 5 using midpoints of gaps between the tape pieces
-                        new_image_points = np.zeros((4, 2), np.float32)
-
-                        for i in range(4):
-                            mid_x = (image_points[i][0] + image_points[i + 1][0]) / 2
-                            mid_y = (image_points[i][1] + image_points[i + 1][1]) / 2
-                            new_image_points[i, 0] = mid_x
-                            new_image_points[i, 1] = mid_y
-                        # Transfer new array over
-                        image_points = np.array(new_image_points)
-
-                        # Solve PNP
-                        _, rvecs, tvecs = cv2.solveP3P(objectPoints=self.obj_points4, imagePoints=image_points,
-                                                       cameraMatrix=self.new_camera_mtx, distCoeffs=self.distortion,
-                                                       flags=cv2.SOLVEPNP_P3P)
-
-                    print('Successfully solve PNPed')
-
-                    # rvecs to rotation matrix by axis angle to 3 by 3
-                    # after Rodrigues:
-                    # [[0  -rz ry]
-                    #  [rz 0   -rx]
-                    #  [-ry, rx, 0]
-                    rmatrix, _ = cv2.Rodrigues(np.array([rvecs[0][0][0], rvecs[0][1][0], rvecs[0][2][0]], np.float32))
-                    rmatrix_T = rmatrix.T
-                    tmatrix = np.array([tvecs[0][0][0], tvecs[0][1][0], tvecs[0][2][0]], np.float32).reshape(3, 1)
-                    real_cam_center = np.matmul(-rmatrix_T, tmatrix)
-
-                    # TODO Calculate turret theta (not actually an angle, more like pixel distance)
-                    # Calculate midpoint between leftmost and rightmost contour
-                    left_y = image_points[0][1]
-                    right_y = image_points[len(image_points) - 1][1]
-
-                    midpoint_y = (left_y + right_y) / 2
-
-                    # Vision data to pass
-                    # turret_theta = midpoint_y - self.cam_center[1]
-                    # turret_vision_status = True
-                    # hub_distance = real_cam_center[1][0]
-
-            except Exception as e:  # Leave if solvePNP doesn't work (ie. no contours detected)
-                traceback.print_exc()
-                print("Exception while finding contours")
-            '''
-            # Try running with largest contour
+            # CONTOUR VALIDATION
             # Sort by area (descending)
             output.sort(key=lambda a: a[4], reverse=True)
+            print(len(output))
 
-            if len(output) > 0:
-                largest_cnt_pos = (output[0][1], output[0][2])
+            # Take the 10 largest contours
+            trunc_output = output[0:(10 if len(output) > 10 else len(output))]
+            print(len(trunc_output))
+            filtered_output = []
 
-                distance = (.0005 * (largest_cnt_pos[0] ** 2)) + (.0684372 * largest_cnt_pos[0]) + 79.8011
+            # Filter by: area, fullness, aspect ratio
+            for o in trunc_output:
+
+                x, y, w, h = cv2.boundingRect(o[0])
+                # Draw bounding rectangles (1st round of filtering)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 127, 255), 1)  # orange
+
+                print('x, y, w, h', x, y, w, h)
+                print(o[4], o[4] / (w * h), w / h)
+
+                # Is it large enough?
+                if o[4] < 20:  # TODO test and check what min and max area should be +- 10%
+                    continue
+
+                # Does it fill at least 80% of its bounding rectangle?
+                if o[4] < (w * h) * 0.8:
+                    continue
+
+                # Does it have a good aspect ratio?
+                aspect_ratio = w / h  # Ideally greater than 1.5, less than 2.5
+                print(aspect_ratio)
+                if aspect_ratio < 1.5 or aspect_ratio > 3.5:
+                    continue
+
+                # Else, we've found a good contour!
+                filtered_output.append(o)
+
+                # Draw bounding rectangles (2nd round of filtering)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)  # red
+
+            filtered_output.sort(key=lambda a: a[4], reverse=True)
+
+            print(len(filtered_output))
+
+            final_contour = None
+            if len(filtered_output) > 0:
+                final_contour = filtered_output[0]
+
+            if final_contour is not None:
+                # Draw the bounding box
+                x, y, w, h = cv2.boundingRect(final_contour[0])
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+                final_contour_pos = (final_contour[1], final_contour[2])
+
+                # Use interpolation to calculate distance
+                distance = (.0005 * (final_contour_pos[0] ** 2)) + (.0684372 * final_contour_pos[0]) + 79.8011
+
                 # Vision data to pass
                 h, w, _ = frame.shape
                 turret_vision_status = True
-                turret_theta = (h / 2.0 + 0.5) - largest_cnt_pos[1]
+                turret_theta = (h / 2.0 + 0.5) - final_contour_pos[1]  # Return pixel distance
                 hub_distance = distance
+
+                cv2.circle(frame, final_contour_pos, 5, (255, 0, 0), 10)
 
             # ax, d = self.get_ball_values_calib(frame, largest_cnt_pos)
             # ax, d = self.get_ball_values(frame, largest_cnt_pos)
-
-        # Draw text
-        # utility.put_text_group(frame, ('Status: ' + str(turret_vision_status),
-        # 'Turret theta: ' + (str(turret_theta) if turret_vision_status else '---'),
-        # 'Hub dist: ' + (str(hub_distance) if turret_vision_status else '---')))
 
         # Draw reference lines (center line)
         h, w, _ = frame.shape
@@ -256,7 +203,7 @@ class Turret:
                  (255, 255, 255), 2)
 
         # Copy to the output frame
-        frame = cv2.resize(frame, (0, 0), fx=0.25,fy=0.25)
+        # frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
         self.output_frame = np.copy(frame)
 
         # Return vision data
