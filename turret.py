@@ -62,7 +62,7 @@ class Turret:
                                         [0., 0., 1.]])
 
         # Vision constants
-        self.hsv_lower = np.array([36, 99, 70])
+        self.hsv_lower = np.array([36, 99, 20])
         self.hsv_upper = np.array([97, 255, 255])
 
         self.cam_center = None
@@ -144,7 +144,7 @@ class Turret:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 127, 255), 1)  # orange
 
                 print('x, y, w, h', x, y, w, h)
-                print(o[4], o[4] / (w * h), w / h)
+                print(o[4], o[4] / (w * h), h / w)
 
                 # Is it large enough?
                 if o[4] < 20:  # TODO test and check what min and max area should be +- 10%
@@ -155,7 +155,7 @@ class Turret:
                     continue
 
                 # Does it have a good aspect ratio?
-                aspect_ratio = w / h  # Ideally greater than 1.5, less than 2.5
+                aspect_ratio = h / w  # Ideally greater than 1.5, less than 2.5
                 print(aspect_ratio)
                 if aspect_ratio < 1.5 or aspect_ratio > 3.5:
                     continue
