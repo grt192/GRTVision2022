@@ -34,24 +34,24 @@ class Main:
         self.intake = Intake()
 
         if jetson:
-            address = '10.1.92.94'
-            ports = (5801, 5802)
+            self.address = '10.1.92.94'
+            self.ports = (5801, 5802)
         else:
-            address = 'localhost'
-            ports = (8081, 8082)
+            self.address = 'localhost'
+            self.ports = (8081, 8082)
 
         self.connect_socket = connect_socket
         self.jetson = jetson
 
-        # Start threads
-        print('Starting threads...')
-        turret_thread = threading.Thread(target=start_http_server, args=(self.turret, (TurretSource(jetson) if turret_source is None else turret_source), address, ports[0]))
-        intake_thread = threading.Thread(target=start_http_server, args=(self.intake, (IntakeSource(jetson) if intake_source is None else intake_source), address, ports[1]))
-        turret_thread.start()
-        intake_thread.start()
+        self.turret_source = turret_source
+        self.intake_source = intake_source
 
         # Run the main code
         self.run()
+
+    def send_data(self):
+        output_data = self.turret.get_output_values() + self.intake.get_output_values()
+        self.conn.send(bytes(str(output_data) + "\n", "UTF-8"))
 
     # Just run once! Infinite loop that keeps the streaming threads alive whilst sending socket data (if applicable)
     def run(self):
@@ -75,11 +75,25 @@ class Main:
                         with conn:
                             print('Connected by', addr)
 
+                            self.conn = conn
+
+                            # Start threads
+                            print('Starting threads...')
+                            turret_thread = threading.Thread(target=start_http_server, args=(
+                            self.turret, (TurretSource(self.jetson) if self.turret_source is None else self.turret_source), self.address,
+                            self.ports[0]))
+                            intake_thread = threading.Thread(target=start_http_server, args=(
+                            self.intake, (IntakeSource(self.jetson) if self.intake_source is None else self.intake_source), self.address,
+                            self.ports[1]))
+                            turret_thread.start()
+                            intake_thread.start()
+
+                            conn_thread = threading.Thread(target=send_data)
+                            conn_thread.start()
+
                             # Send data over socket connection
                             while True:
-                                output_data = self.turret.get_output_values() + self.intake.get_output_values()
-                                print('send data', str(output_data))
-                                conn.send(bytes(str(output_data) + "\n", "UTF-8"))
+                                pass
                             break
 
                 except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
