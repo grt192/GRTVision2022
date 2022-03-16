@@ -42,4 +42,5 @@ class Intake:
 
         # utility.put_text_group(frame, ('Balls? ' + str(self.ball_detected), ))
 
-        return self.ball_detected
+    def get_output_values(self):
+        return (self.ball_detected, )  # return tuple

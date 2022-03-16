@@ -4,7 +4,7 @@ are separated in two different scripts: local_turret.py and local_intake.py.
 '''
 
 import cv2
-from intake import Intake
+from Intake import Intake
 
 
 intake_cap = None

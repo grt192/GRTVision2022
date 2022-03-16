@@ -3,7 +3,7 @@
 import cv2
 import socket
 from Turret import Turret
-from intake import Intake
+from Intake import Intake
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn

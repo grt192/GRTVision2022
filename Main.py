@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from Turret import Turret
-from intake import Intake
+from Intake import Intake
 import threading
 import socket
 
@@ -47,7 +47,7 @@ class Main:
                 PORT = 5800
             else:
                 HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
-                PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
+                PORT = 1337  # Port to listen on (non-privileged ports are > 1023)
 
             # Connect to socket
             while True:
@@ -63,7 +63,7 @@ class Main:
 
                             # Send data over socket connection
                             while True:
-                                output_data = self.turret.output_data + self.intake.output_data
+                                output_data = self.turret.get_output_values() + self.intake.get_output_values()
                                 conn.send(bytes(str(output_data) + "\n", "UTF-8"))
                             break
 
