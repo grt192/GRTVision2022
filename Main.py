@@ -14,7 +14,21 @@ from StaticImageSource import StaticImageSource
 class Main:
 
     def __init__(self, jetson, connect_socket, turret_source=None, intake_source=None):
-        print('Main 2 param')
+        '''
+        jetson (bool): True if running on Jetson, False otherwise.
+            This controls the address and port #s, as well as the image sources for turret and intake
+            (ie. dev/cam/turret vs 0)
+
+        connect_socket (bool): True if you want to run the data socket connection. Will connect via 1337 localhost or
+            5800
+
+        turret_source (image source object): Leave None if you want the video capture to be the image source for the
+            vision pipeline. Options: None or StaticImageSource obj
+
+        intake_source: same as turret_source but for intake duh
+        '''
+
+        print('Entered Main')
         # Initialize vision pipelines
         self.turret = Turret()
         self.intake = Intake()

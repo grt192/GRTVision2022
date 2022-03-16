@@ -1,6 +1,6 @@
 import numpy as np
-from blob import BlobDetector
-import utility
+from Blob import BlobDetector
+import Utility
 
 
 class Intake:
