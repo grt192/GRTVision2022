@@ -9,44 +9,6 @@ class Turret:
 
     def __init__(self):
 
-        # For vision processing
-        theta = math.pi / 8  # radians
-        r = (4 * 12 + 5 + 3.0/8) / 2  # inches
-        # 3D points in real world space
-        '''
-        self.obj_points4 = np.array([[r * math.cos(0), 0, -r * math.sin(0)],
-                                     [r * math.cos(theta), 0, -r * math.sin(theta)],
-                                     [r * math.cos(2 * theta), 0, -r * math.sin(2 * theta)],
-                                     [r * math.cos(3 * theta), 0, -r * math.sin(3 * theta)]], np.float32)
-        '''
-        '''
-        self.obj_points4 = np.array([[0, r * math.cos(0), r * math.sin(0)],
-                                     [0, r * math.cos(theta), r * math.sin(theta)],
-                                     [0, r * math.cos(2 * theta), r * math.sin(2 * theta)],
-                                     [0, r * math.cos(3 * theta), r * math.sin(3 * theta)]], np.float32)
-        '''
-        '''
-        self.obj_points4 = np.array([[0, r * math.sin(0), r * math.cos(0)],
-                                     [0, r * math.sin(theta), r * math.cos(theta)],
-                                     [0, r * math.sin(2 * theta), r * math.cos(2 * theta) ],
-                                     [0, r * math.sin(3 * theta), r * math.cos(3 * theta)]], np.float32)
-        '''
-
-        self.obj_points4 = np.array([[0, r * math.cos(0), -r * math.sin(0)],
-                              [0, r * math.cos(theta), -r * math.sin(theta)],
-                              [0, r * math.cos(2 * theta), -r * math.sin(2 * theta)],
-                              [0, r * math.cos(3 * theta), -r * math.sin(3 * theta)]], np.float32)
-
-        '''
-        theta_start = 3 * math.pi / 16
-        self.obj_points5 = np.array([[r * math.cos(theta_start), r * math.sin(theta_start), 0],
-                                     [r * math.cos(theta_start + theta), r * math.sin(theta_start + theta), 0],
-                                     [r * math.cos(theta_start + 2 * theta), r * math.sin(theta_start + 2 * theta), 0],
-                                     [r * math.cos(theta_start + 3 * theta), r * math.sin(theta_start + 3 * theta), 0],
-                                     [r * math.cos(theta_start + 4 * theta), r * math.sin(theta_start + 4 * theta), 0]],
-                                    np.float32)
-        '''
-
         # Calibration camera matrices for the TURRET camera (error = 0.05089120586524974)
         # [[fx, 0, cx]
         #  [0, fy, cy]
@@ -91,7 +53,8 @@ class Turret:
             self.cam_center = (cam_x, cam_y)
 
         # Blur
-        self.blur_frame = cv2.blur(frame, (4, 4))
+        # self.blur_frame = cv2.blur(frame, (4, 4))
+        self.blur_frame = frame
 
         # Filter using HSV mask
         self.hsv_frame = cv2.cvtColor(self.blur_frame, cv2.COLOR_BGR2HSV)
@@ -143,21 +106,20 @@ class Turret:
                 # Draw bounding rectangles (1st round of filtering)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 127, 255), 1)  # orange
 
-                print('x, y, w, h', x, y, w, h)
-                print(o[4], o[4] / (w * h), h / w)
+                # print('x, y, w, h', x, y, w, h)
+                # print(o[4], o[4] / (w * h), h / w)
 
                 # Is it large enough?
                 if o[4] < 20:  # TODO test and check what min and max area should be +- 10%
                     continue
 
                 # Does it fill at least 80% of its bounding rectangle?
-                if o[4] < (w * h) * 0.8:
+                if o[4] < (w * h) * 0.5:
                     continue
 
                 # Does it have a good aspect ratio?
                 aspect_ratio = h / w  # Ideally greater than 1.5, less than 2.5
-                print(aspect_ratio)
-                if aspect_ratio < 1.5 or aspect_ratio > 3.5:
+                if aspect_ratio < 1.5 or aspect_ratio > 4.5:
                     continue
 
                 # Else, we've found a good contour!
@@ -166,12 +128,14 @@ class Turret:
                 # Draw bounding rectangles (2nd round of filtering)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)  # red
 
-            filtered_output.sort(key=lambda a: a[4], reverse=True)
+            # print('f_o', len(filtered_output))
 
-            print(len(filtered_output))
+            filtered_output.sort(key=lambda a: a[4], reverse=True)
 
             final_contour = None
             if len(filtered_output) > 0:
+
+                # filtered_output.sort(key=lambda a: frame[a[1], a[2]][1], reverse=True)  # sort by saturavation value of center pixel, descending
                 final_contour = filtered_output[0]
 
             if final_contour is not None:
@@ -179,10 +143,14 @@ class Turret:
                 x, y, w, h = cv2.boundingRect(final_contour[0])
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
+
+                # print('x, y, w, h', x, y, w, h)
+                # print('area, fullness, aspect ratio', final_contour[4], final_contour[4] / (w * h), h / w)
+
                 final_contour_pos = (final_contour[1], final_contour[2])
 
                 # Use interpolation to calculate distance
-                distance = (.0005 * (final_contour_pos[0] ** 2)) + (.0684372 * final_contour_pos[0]) + 79.8011
+                distance = (36.75131166 * (math.e ** (0.002864827 * final_contour_pos[0]))) + 18.65849
 
                 # Vision data to pass
                 h, w, _ = frame.shape

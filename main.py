@@ -84,6 +84,16 @@ def start_intake_stream():
     print('server started at http://' + intake_address + ':' + str(intake_port) + '/cam.html')
     intake_server.serve_forever()  # Runs forever
 
+def send_data():
+    while True:
+        # Send data
+        if conn:
+            print('send data', turret_vision_status, turret_theta, hub_distance, ball_detected)
+            conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
+        else:
+            # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
+            pass
+
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
@@ -251,8 +261,11 @@ class IntakeCamHandler(BaseHTTPRequestHandler):
             return
 
 
-def run(ip_address='10.1.92.94', ports=(5801, 5802), conn=None):
+def run(ip_address='10.1.92.94', ports=(5801, 5802), conn_param=None):
     global turret_address, turret_port, intake_address, intake_port
+    global conn
+    conn = conn_param
+
 
     turret_address = ip_address
     turret_port = ports[0]
@@ -266,14 +279,14 @@ def run(ip_address='10.1.92.94', ports=(5801, 5802), conn=None):
     intake_thread = threading.Thread(target=start_intake_stream)
     intake_thread.start()
 
+    conn_thread = threading.Thread(target=send_data)
+    conn_thread.start()
+
+    print('started threads')
+
     while True:
         try:
-            # Send data
-            if conn:
-                conn.send(bytes(str((turret_vision_status, turret_theta, hub_distance, ball_detected)) + "\n", "UTF-8"))
-            else:
-                # print((turret_vision_status, turret_theta, hub_distance, ball_detected))
-                pass
+            print('in while true loop of run()')
             pass
         except KeyboardInterrupt as e:
             turret_server.socket.close()

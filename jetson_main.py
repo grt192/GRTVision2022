@@ -16,7 +16,7 @@ while True:
             with conn:
                 print('Connected by', addr)
 
-                main.run(ip_address='10.1.92.94', ports=(5801, 5802), conn=conn)
+                main.run(ip_address='10.1.92.94', ports=(5801, 5802), conn_param=conn)
                 # Terminate program if main completes
                 break
 
