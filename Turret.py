@@ -99,11 +99,11 @@ class Turret:
             # CONTOUR VALIDATION
             # Sort by area (descending)
             output.sort(key=lambda a: a[4], reverse=True)
-            print(len(output))
+            # print(len(output))
 
             # Take the 10 largest contours
             trunc_output = output[0:(10 if len(output) > 10 else len(output))]
-            print(len(trunc_output))
+            # print(len(trunc_output))
             filtered_output = []
 
             # Filter by: area, fullness, aspect ratio

@@ -57,7 +57,6 @@ class GenericCamHandler(BaseHTTPRequestHandler):
             while True:
                 try:
                     # Get the frame and process it
-                    print(self.frame_source)
                     self.frame = self.frame_source.get_frame()
                     self.pipeline.process(self.frame)
 
@@ -115,7 +114,7 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                     try:
                         output_str = '<p>('
 
-                        for datum in self.pipeline.get_output_data():
+                        for datum in self.pipeline.get_output_values():
                             output_str += str(datum) + ', '
 
                         output_str = output_str[:-2]  # remove the last comma & space
