@@ -1,8 +1,9 @@
-import main
+import Main
 import socket
 
 HOST = ''  # Empty string to accept connections on all available IPv4 interfaces
-PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
+# PORT = 5800  # Port to listen on (non-privileged ports are > 1023)
+PORT = 1337
 
 # Connect to socket
 while True:
@@ -16,7 +17,9 @@ while True:
             with conn:
                 print('Connected by', addr)
 
-                main.run(ip_address='10.1.92.94', ports=(5801, 5802), conn_param=conn)
+                # main.run(ip_address='10.1.92.94', ports=(5801, 5802), conn_param=conn)
+                Main.run(ip_address='localhost', ports=(8081, 8082), conn_param=conn)
+
                 # Terminate program if main completes
                 break
 

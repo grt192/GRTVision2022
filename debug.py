@@ -2,7 +2,7 @@
 
 import cv2
 import socket
-from turret import Turret
+from Turret import Turret
 from intake import Intake
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -70,7 +70,7 @@ class TurretCamHandler(BaseHTTPRequestHandler):
                         hub_distance = 0
                         continue
 
-                    # Do this out here instead of in turret.py so that the frame gets preserved
+                    # Do this out here instead of in Turret.py so that the frame gets preserved
                     turret_vision_status, turret_theta, hub_distance = turret.process(turret_frame)
                     print((turret_vision_status, turret_theta, hub_distance))
 

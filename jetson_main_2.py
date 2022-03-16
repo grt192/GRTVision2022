@@ -1,4 +1,4 @@
-import main
+import Main
 
 # Run Jetson w/o socket connection
-main.run()
+Main.run()
