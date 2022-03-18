@@ -80,6 +80,7 @@ class Main:
                                 output_data = self.turret.get_output_values() + self.intake.get_output_values()
                                 print('send data', str(output_data))
                                 conn.send(bytes(str(output_data) + "\n", "UTF-8"))
+                                time.sleep(0.1)
                             break
 
                 except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:

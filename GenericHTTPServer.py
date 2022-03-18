@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import cv2
+import time
 
 
 def start_http_server(pipeline, frame_source, address, port):
@@ -74,6 +75,7 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                             self.wfile.write(b"\r\n--jpgboundary\r\n")
                             break
 
+                    time.sleep(0.25)
 
                 except KeyboardInterrupt:
                     self.wfile.write(b"\r\n--jpgboundary--\r\n")
