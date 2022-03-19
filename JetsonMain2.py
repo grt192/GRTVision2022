@@ -1,4 +1,4 @@
-import Main
+from Main import Main
 
-# Runs w/o socket connection
-Main.run(jetson=True, connect_socket=False)
+Main(jetson=True, connect_socket=False)
+

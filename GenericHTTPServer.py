@@ -70,12 +70,13 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                             img_str = cv2.imencode('.jpg', frame)[1].tobytes()
                             self.send_header('Content-type', 'image/jpeg')
                             self.send_header('Content-length', len(img_str))
+                            self.send_header('Cache-Control', 'no-store') # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
                             self.end_headers()
                             self.wfile.write(img_str)
                             self.wfile.write(b"\r\n--jpgboundary\r\n")
                             break
 
-                    time.sleep(0.25)
+                    time.sleep(0.01)
 
                 except KeyboardInterrupt:
                     self.wfile.write(b"\r\n--jpgboundary--\r\n")
@@ -89,6 +90,8 @@ class GenericCamHandler(BaseHTTPRequestHandler):
             if arg == 'cam':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
+                self.send_header('Cache-Control',
+                                 'no-store')  # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
                 self.end_headers()
                 self.wfile.write('<html><head></head><body>'.encode('UTF-8'))
 
@@ -98,8 +101,8 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                                       + self.url(output_frame['name'] + '.mjpg"') + '/>').encode('UTF-8'))
 
                 # Write vision data to webpage
-                self.wfile.write(('<embed type="text/html" src="' + self.url('data.html')
-                                  + '" width="500" height="200">').encode('UTF-8'))
+                # self.wfile.write(('<embed type="text/html" src="' + self.url('data.html')
+                                  # + '" width="500" height="200">').encode('UTF-8'))
 
                 self.wfile.write('</body></html>'.encode('UTF-8'))
                 return
