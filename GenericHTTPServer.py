@@ -74,6 +74,7 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                             self.end_headers()
                             self.wfile.write(img_str)
                             self.wfile.write(b"\r\n--jpgboundary\r\n")
+                            self.wfile.flush()
                             break
 
                     time.sleep(0.01)
@@ -105,8 +106,10 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                                   # + '" width="500" height="200">').encode('UTF-8'))
 
                 self.wfile.write('</body></html>'.encode('UTF-8'))
+                self.wfile.flush()
                 return
 
+            '''
             # Webpage that serves the vision data
             elif arg == 'data':
                 self.send_response(200)
@@ -131,3 +134,78 @@ class GenericCamHandler(BaseHTTPRequestHandler):
                     except BrokenPipeError:
                         continue
                 self.wfile.write('</body></html>'.encode('UTF-8'))
+            '''
+'''
+Microsoft LifeCam
+        Index       : 1
+        Type        : Video Capture
+        Pixel Format: 'MJPG' (compressed)
+        Name        : Motion-JPEG
+                Size: Discrete 640x480
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 1280x720
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 960x544
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 800x448
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 640x360
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 800x600
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 416x240
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 352x288
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 176x144
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 320x240
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+                Size: Discrete 160x120
+                        Interval: Discrete 0.033s (30.000 fps)
+                        Interval: Discrete 0.050s (20.000 fps)
+                        Interval: Discrete 0.067s (15.000 fps)
+                        Interval: Discrete 0.100s (10.000 fps)
+                        Interval: Discrete 0.133s (7.500 fps)
+
+'''

@@ -137,8 +137,8 @@ class Turret:
 
             # print('f_o', len(filtered_output))
 
-            filtered_output.sort(key=lambda a: a[4], reverse=True)
-
+            # no need to sort; it's already in descending order by area
+            # filtered_output.sort(key=lambda a: a[4], reverse=True)
             final_contour = None
             if len(filtered_output) > 0:
 
