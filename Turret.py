@@ -154,25 +154,28 @@ class Turret:
                 # print('x, y, w, h', x, y, w, h)
                 # print('area, fullness, aspect ratio', final_contour[4], final_contour[4] / (w * h), h / w)
 
+                # Draw contour to analyze in blue (ideally the middle tape)
                 final_contour_pos = (final_contour[1], final_contour[2])
+                cv2.circle(frame, final_contour_pos, 5, (255, 0, 0), 10)  # Blue
 
                 # Use interpolation to calculate distance
-                distance = (36.75131166 * (math.e ** (0.002864827 * final_contour_pos[0]))) + 18.65849
+                interp_d = (36.75131166 * (math.e ** (0.002864827 * final_contour_pos[0]))) + 18.65849
+
+                # Calculate pixel distance to target
+                pixel_theta = (h / 2.0 + 0.5) - final_contour_pos[1]
+
+                # Use FOV to calculate turret angle to target (radians) and distance
+                fov_ax, fov_d = self.get_ball_values(frame, final_contour_pos)
 
                 # Vision data to pass
                 h, w, _ = frame.shape
                 turret_vision_status = True
-                turret_theta = (h / 2.0 + 0.5) - final_contour_pos[1]  # Return pixel distance
-                hub_distance = distance
-
-                cv2.circle(frame, final_contour_pos, 5, (255, 0, 0), 10)  # Blue
+                turret_theta = fov_ax  # return angle to target obtained from FOV
+                hub_distance = fov_d  # pass distance obtained from FOV lol cuz it seems p accurate
 
                 temp_output_data = (turret_vision_status, turret_theta, hub_distance)
 
-                ax, d = self.get_ball_values(frame, final_contour_pos)
-
             # ax, d = self.get_ball_values_calib(frame, largest_cnt_pos)
-
 
         # Copy to the output frame
         # frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
@@ -180,7 +183,6 @@ class Turret:
 
         # Set output data
         self.output_data = temp_output_data
-
 
     def get_output_values(self):
         return self.output_data
@@ -201,7 +203,6 @@ class Turret:
         self.hsv_lower = new_lower
         self.hsv_upper = new_upper
 
-
     def get_ball_values_from_tvec(self, tvec):
         """ Ideally returns a distanc and pitch angle to target (ie. angle that the turret needs to rotate) but more
         extensive testing is needed. Seems to produce error just like the matrix multiplication operation does."""
@@ -215,7 +216,6 @@ class Turret:
         print('a1, d', a1, d)
 
         return a1, d
-
 
     def get_ball_values(self, frame, center):
         '''Calculate the angle and distance from the camera to the center point of the robot
@@ -235,6 +235,10 @@ class Turret:
         tx = center[0]
         ty = center[1]
 
+        undist_center = self.undistort_points(center)
+        tx = undist_center[0]
+        ty = undist_center[1]
+
         # center is in pixel coordinates, 0,0 is the upper-left, positive down and to the right
         # (nx,ny) = normalized pixel coordinates, 0,0 is the center, positive right and up
         # WARNING: shape is (h, w, nbytes) not (w,h,...)
@@ -249,10 +253,10 @@ class Turret:
         # convert normal pixel coords to pixel coords
         x = VP_HALF_WIDTH * nx
         y = VP_HALF_HEIGHT * ny
-        print("values", tx, ty, nx, ny, x, y)
+        # print("values", tx, ty, nx, ny, x, y)
 
         # now have all pieces to convert to angle:
-        ax = math.atan2(x, 1.0)     # horizontal angle
+        ax = -math.atan2(x, 1.0)     # horizontal angle
 
         # naive expression
         # ay = math.atan2(y, 1.0)     # vertical angle
@@ -263,18 +267,29 @@ class Turret:
         # print("ax, ay", math.degrees(ax), math.degrees(ay))
 
         target_height = 99
-        camera_height = 28
+        camera_height = 27
         tilt_angle = math.radians(50)
         # now use the x and y angles to calculate the distance to the target:
-        d = (target_height - camera_height) / math.tan(tilt_angle - ax)    # distance to the target
+        d = (target_height - camera_height) / math.tan(tilt_angle + ax)    # distance to the target
         # add radius of hub
         hub_diameter = 4 * 12 + 5 + 3/8.0  # 4 feet, 5 3/8 inches
         d += hub_diameter / 2.0
+        # account for the consistent -20% error
+        d *= 100 / 80.0
         print('using fov, ax, ay, d', math.degrees(ax), math.degrees(ay), d)
 
         return ay, d    # return horizontal angle to target and distance
 
+    def undistort_points(self, center):
+        # use the distortion and camera arrays to correct the location of the center point
+        # got this from
+        #  https://stackoverflow.com/questions/8499984/how-to-undistort-points-in-camera-shot-coordinates-and-obtain-corresponding-undi
 
+        ptlist = np.array([[center]], dtype=np.float32)
+        out_pt = cv2.undistortPoints(ptlist, self.camera_mtx, self.distortion, P=self.camera_mtx)
+        undist_center = out_pt[0, 0]
+
+        return undist_center
 
     def get_ball_values_calib(self, frame, center):
         """Calculate the angle and distance from the camera to the center point of the robot

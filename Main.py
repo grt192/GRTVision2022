@@ -90,10 +90,11 @@ class Main:
                     break
         else:
             while True:
-                pass
+                output_data = self.turret.get_output_values() + self.intake.get_output_values()
+                # print(str(output_data))
 
 
 if __name__ == '__main__':
     # Main(jetson=False, connect_socket=False)
-    Main(jetson=False, connect_socket=True, turret_source=StaticImageSource('images/70_1.0.png'),
+    Main(jetson=False, connect_socket=False, turret_source=StaticImageSource('images/221_1.0.png'),
          intake_source=StaticImageSource('images/106.25_1.0.png'))
