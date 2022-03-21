@@ -40,24 +40,9 @@ class Turret:
         # Data
         self.output_data = (False, 0, 0)
 
-
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
         temp_output_data = (False, 0, 0)
-
-        # Get coordinates of the center of the frame
-        if self.cam_center is None:
-            h, w, _ = frame.shape
-            cam_x = int((w / 2) - 0.5)
-            cam_y = int((h / 2) - 0.5)
-            self.cam_center = (cam_x, cam_y)
-
-        # Draw reference lines (center line)
-        h, w, _ = frame.shape
-        cam_x = int((w / 2) - 0.5)
-        cam_y = int((h / 2) - 0.5)
-        cv2.line(frame, (0, cam_y), (w, cam_y),
-                 (255, 255, 255), 2)
 
         # Blur
         # self.blur_frame = cv2.blur(frame, (4, 4))
@@ -75,6 +60,21 @@ class Turret:
 
         # self.mask = cv2.resize(self.mask, (0, 0), fx=0.25, fy=0.25)
         self.masked_output = np.copy(self.mask)
+
+        # Get coordinates of the center of the frame
+        if self.cam_center is None:
+            h, w, _ = frame.shape
+            cam_x = int((w / 2) - 0.5)
+            cam_y = int((h / 2) - 0.5)
+            self.cam_center = (cam_x, cam_y)
+
+        # Draw reference lines (center line) --> must do after masking otherwise the white line is included
+        h, w, _ = frame.shape
+        cam_x = int((w / 2) - 0.5)
+        cam_y = int((h / 2) - 0.5)
+        cv2.line(frame, (0, cam_y), (w, cam_y),
+                 (255, 255, 255), 2)
+
 
         # Grab contours
         contours = cv2.findContours(self.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -169,8 +169,9 @@ class Turret:
 
                 temp_output_data = (turret_vision_status, turret_theta, hub_distance)
 
+                ax, d = self.get_ball_values(frame, final_contour_pos)
+
             # ax, d = self.get_ball_values_calib(frame, largest_cnt_pos)
-            # ax, d = self.get_ball_values(frame, largest_cnt_pos)
 
 
         # Copy to the output frame
@@ -216,29 +217,29 @@ class Turret:
         return a1, d
 
 
-
     def get_ball_values(self, frame, center):
         '''Calculate the angle and distance from the camera to the center point of the robot
         This routine uses the FOV numbers and the default center to convert to normalized coordinates'''
 
-        HFOV = 57.15  # horizontal angle of the field of view
-        VFOV = 44.44  # vertical angle of the field of view
+        HFOV = math.radians(57.15)  # horizontal angle of the field of view
+        VFOV = math.radians(44.44)  # vertical angle of the field of view
 
         # create imaginary view plane on 3d coords to get height and width
         # place the view place on 3d coordinate plane 1.0 unit away from (0, 0) for simplicity
-        VP_HALF_WIDTH = math.tan(math.radians(HFOV) / 2.0)  # view plane 1/2 height
-        VP_HALF_HEIGHT = math.tan(math.radians(VFOV) / 2.0)  # view plane 1/2 width
+        VP_HALF_WIDTH = math.tan(HFOV / 2.0)  # view plane 1/2 height
+        VP_HALF_HEIGHT = math.tan(VFOV / 2.0)  # view plane 1/2 width
 
         shape = frame.shape
 
-        tx = center[1]
-        ty = center[0]
+        # target x and y pixel coordinates
+        tx = center[0]
+        ty = center[1]
 
         # center is in pixel coordinates, 0,0 is the upper-left, positive down and to the right
         # (nx,ny) = normalized pixel coordinates, 0,0 is the center, positive right and up
         # WARNING: shape is (h, w, nbytes) not (w,h,...)
-        image_w = shape[0] / 2.0
-        image_h = shape[1] / 2.0
+        image_w = shape[1] / 2.0
+        image_h = shape[0] / 2.0
 
         # NOTE: the 0.5 is to place the location in the center of the pixel
         # print("center", center, "shape", shape)
@@ -261,12 +262,17 @@ class Turret:
         ay = math.atan2(y * math.cos(ax), 1.0)     # vertical angle
         # print("ax, ay", math.degrees(ax), math.degrees(ay))
 
+        target_height = 99
+        camera_height = 28
+        tilt_angle = math.radians(50)
         # now use the x and y angles to calculate the distance to the target:
-        d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ay)    # distance to the target
-
+        d = (target_height - camera_height) / math.tan(tilt_angle - ax)    # distance to the target
+        # add radius of hub
+        hub_diameter = 4 * 12 + 5 + 3/8.0  # 4 feet, 5 3/8 inches
+        d += hub_diameter / 2.0
         print('using fov, ax, ay, d', math.degrees(ax), math.degrees(ay), d)
 
-        return ax, d    # return horizontal angle and distance
+        return ay, d    # return horizontal angle to target and distance
 
 
 

@@ -95,4 +95,5 @@ class Main:
 
 if __name__ == '__main__':
     # Main(jetson=False, connect_socket=False)
-    Main(jetson=False, connect_socket=True, turret_source=StaticImageSource('images/129.75_6.0.png'), intake_source=StaticImageSource('images/129.75_6.0.png'))
+    Main(jetson=False, connect_socket=True, turret_source=StaticImageSource('images/70_1.0.png'),
+         intake_source=StaticImageSource('images/106.25_1.0.png'))

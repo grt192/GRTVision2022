@@ -1,6 +1,7 @@
 import numpy as np
 from Blob import BlobDetector
 import Utility
+import numpy as np
 
 
 class Intake:
@@ -27,6 +28,8 @@ class Intake:
         self.red_blob_detector = BlobDetector(self.red_hsv_lower, self.red_hsv_upper, self.red_hsv_lower2,
                                               self.red_hsv_upper2)
 
+        self.output_frame = None
+
     # Returned frame must be same size as input frame. Draw on the given frame.
     def process(self, frame):
         # Find blue blobs
@@ -34,6 +37,8 @@ class Intake:
 
         # Find red blobs
         num_red = self.red_blob_detector.process(frame)
+
+        self.output_frame = np.copy(frame)
 
         if self.min_balls <= num_red + num_blue <= self.max_balls:
             self.ball_detected = True
@@ -44,3 +49,11 @@ class Intake:
 
     def get_output_values(self):
         return (self.ball_detected, )  # return tuple
+
+    def get_output_frames(self):
+        return [
+            {
+                'name': 'final',
+                'frame': self.output_frame
+            },
+        ]

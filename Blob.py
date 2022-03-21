@@ -27,7 +27,10 @@ class BlobDetector:
         self.binary_frame = None
         self.circles = None
 
+
     def process(self, frame):
+        output_value = 0
+
         # Blur
         self.blur_frame = cv2.GaussianBlur(frame, (self.ksize_blur, self.ksize_blur), round(self.blur_radius))
 
@@ -68,9 +71,9 @@ class BlobDetector:
                 cv2.circle(frame, center, radius, (255, 0, 255), 3)
 
             # Return data
-            return len(self.circles)
-        else:
-            return 0
+            output_value = len(self.circles)
+
+        return output_value
 
     def find_blobs(self, frame):
         params = cv2.SimpleBlobDetector_Params()
@@ -88,3 +91,4 @@ class BlobDetector:
         detector = cv2.SimpleBlobDetector_create(params)
 
         return detector.detect(frame)
+
