@@ -5,6 +5,7 @@ from Intake import Intake
 import threading
 import socket
 import time
+import logging
 
 from GenericHTTPServer import start_http_server
 from TurretSource import TurretSource
@@ -28,8 +29,8 @@ class Main:
 
         intake_source: same as turret_source but for intake duh
         '''
-
-        print('Entered Main')
+        logging.basicConfig(filename='print.log', level=logging.DEBUG)
+        logging.info('Entered Main')
         # Initialize vision pipelines
         self.turret = Turret()
         self.intake = Intake()
@@ -45,7 +46,7 @@ class Main:
         self.jetson = jetson
 
         # Start threads
-        print('Starting threads...')
+        logging.info('Starting threads...')
         turret_thread = threading.Thread(target=start_http_server, args=(self.turret, (TurretSource(jetson) if turret_source is None else turret_source), address, ports[0]))
         intake_thread = threading.Thread(target=start_http_server, args=(self.intake, (IntakeSource(jetson) if intake_source is None else intake_source), address, ports[1]))
         turret_thread.start()
@@ -67,25 +68,25 @@ class Main:
             # Connect to socket
             while True:
                 try:
-                    print('Attempting to connect')
+                    logging.info('Attempting to connect')
 
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         s.bind((HOST, PORT))
                         s.listen()
                         conn, addr = s.accept()
                         with conn:
-                            print('Connected by', addr)
+                            logging.info('Connected by %s', addr)
 
                             # Send data over socket connection
                             while True:
                                 output_data = self.turret.get_output_values() + self.intake.get_output_values()
-                                print('send data', str(output_data))
+                                logging.info('send data %s', str(output_data))
                                 conn.send(bytes(str(output_data) + "\n", "UTF-8"))
                                 time.sleep(0.1)
                             break
 
                 except (BrokenPipeError, ConnectionResetError, ConnectionRefusedError) as e:
-                    print('Connection lost... retrying')
+                    logging.info('Connection lost... retrying')
                 except KeyboardInterrupt as e:
                     break
         else:
@@ -96,5 +97,5 @@ class Main:
 
 if __name__ == '__main__':
     # Main(jetson=False, connect_socket=False)
-    Main(jetson=False, connect_socket=False, turret_source=StaticImageSource('images/221_1.0.png'),
+    Main(jetson=False, connect_socket=True, turret_source=StaticImageSource('images/221_1.0.png'),
          intake_source=StaticImageSource('images/106.25_1.0.png'))

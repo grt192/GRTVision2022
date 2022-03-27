@@ -3,7 +3,7 @@ import numpy as np
 import math
 import Utility
 import traceback
-
+import logging
 
 class Turret:
 
@@ -152,16 +152,16 @@ class Turret:
 
 
                 # print('x, y, w, h', x, y, w, h)
-                # print('area, fullness, aspect ratio', final_contour[4], final_contour[4] / (w * h), h / w)
+                logging.info('area, fullness, aspect ratio, %s, %s, %s', final_contour[4], final_contour[4] / (w * h), h / w)
 
                 # Draw contour to analyze in blue (ideally the middle tape)
                 final_contour_pos = (final_contour[1], final_contour[2])
                 cv2.circle(frame, final_contour_pos, 5, (255, 0, 0), 10)  # Blue
 
-                # Use interpolation to calculate distance
+                # (NOT USED) Use interpolation to calculate distance
                 interp_d = (36.75131166 * (math.e ** (0.002864827 * final_contour_pos[0]))) + 18.65849
 
-                # Calculate pixel distance to target
+                # (NOT USED) Calculate pixel distance to target
                 pixel_theta = (h / 2.0 + 0.5) - final_contour_pos[1]
 
                 # Use FOV to calculate turret angle to target (radians) and distance
@@ -213,7 +213,7 @@ class Turret:
         a1 = math.atan2(y, z)
         d = math.sqrt(y ** 2 + z ** 2)
 
-        print('a1, d', a1, d)
+        logging.info('a1, d, %f, %f', a1, d)
 
         return a1, d
 
@@ -276,7 +276,7 @@ class Turret:
         d += hub_diameter / 2.0
         # account for the consistent -20% error
         d *= 100 / 80.0
-        print('using fov, ax, ay, d', math.degrees(ax), math.degrees(ay), d)
+        logging.info('using fov, ax, ay, d, %f, %f, %f', math.degrees(ax), math.degrees(ay), d)
 
         return ay, d    # return horizontal angle to target and distance
 
@@ -290,11 +290,11 @@ class Turret:
         undist_center = out_pt[0, 0]
 
         return undist_center
-
+    '''
     def get_ball_values_calib(self, frame, center):
         """Calculate the angle and distance from the camera to the center point of the robot
         This routine uses the cameraMatrix from the calibration to convert to normalized coordinates"""
-        ''' Everything's in radians ig. Except for print statements '''
+        # Everything's in radians ig. Except for print statements
 
         # Swap target x and target y to account for hub being rotated 90
         tx = center[1]
@@ -313,9 +313,9 @@ class Turret:
                                     [0., 681.12589498, 341.75575426],
                                     [0., 0., 1.]])
 
-        print('tx, ty', tx, ty)
-        print('cx, cy', camera_mtx_rot[0, 2], camera_mtx_rot[1, 2])
-        print('cx, cy', cx, cy)
+        logging.info('tx, ty', tx, ty)
+        logging.info('cx, cy', camera_mtx_rot[0, 2], camera_mtx_rot[1, 2])
+        logging.info('cx, cy', cx, cy)
 
         self.target_height = 8 * 12 + 8  # inches
         self.camera_height = 28  # inches
@@ -333,10 +333,10 @@ class Turret:
         # x prime (along yaw to the hub. yes, yaw)
         x_prime = (tx - cx) / camera_mtx_rot[0, 0]
         # y (pitch to the hub)
-        print('ty, cy, camera_mtx[1, 1]', ty, cy, camera_mtx_rot[1,1])
+        logging.info('ty, cy, camera_mtx[1, 1]', ty, cy, camera_mtx_rot[1,1])
         y_prime = -(ty - cy) / camera_mtx_rot[1, 1]
 
-        print('x prime, y prime', x_prime, y_prime)
+        logging.info('x prime, y prime', x_prime, y_prime)
 
         # now have all pieces to convert to angle:
         ax = math.atan2(x_prime, 1.0)  # x horizontal angle (but actually yaw to hub)
@@ -348,13 +348,13 @@ class Turret:
         # As horizontal angle gets larger, real vertical angle gets a little smaller
         ay = math.atan2(y_prime * math.cos(ax), 1.0)     # vertical angle
 
-        print('ax, ay', math.degrees(ax), math.degrees(ay))
+        logging.info('ax, ay', math.degrees(ax), math.degrees(ay))
 
         # now use the x and y angles to calculate the distance to the target:
         d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ay)    # distance to the target
-        print('d', d)
+        logging.info('d', d)
         return ax, d    # return angle to target (pitch) and distance
-
+    '''
 
 # Pulled from imutils package definition
 def grab_contours(cnts):

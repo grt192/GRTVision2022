@@ -1,4 +1,5 @@
 import cv2
+import logging
 
 
 class IntakeSource:
@@ -13,7 +14,7 @@ class IntakeSource:
 
         # If the VideoCapture is not initialized
         if self.cap is None or (not self.cap.isOpened()):
-            print('Trying to initialize intake cap...')
+            logging.info('Trying to initialize intake cap...')
 
             if self.jetson:
                 self.cap = cv2.VideoCapture('/dev/cam/intake', cv2.CAP_V4L)

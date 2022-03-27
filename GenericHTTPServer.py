@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import cv2
 import time
+import logging
 
 
 def start_http_server(pipeline, frame_source, address, port):
@@ -18,7 +19,7 @@ def start_http_server(pipeline, frame_source, address, port):
         GenericCamHandler(pipeline, frame_source, address, port, *args)
 
     server = ThreadedHTTPServer((address, port), handler)
-    print('server started at http://' + address + ':' + str(port) + '/cam.html')
+    logging.info('server started at http://%s:%s/cam.html', address, port)
     server.serve_forever()
 
 

@@ -1,5 +1,5 @@
 import cv2
-
+import logging
 
 class TurretSource:
 
@@ -12,7 +12,7 @@ class TurretSource:
 
         # If the VideoCapture is not initialized
         if self.cap is None or (not self.cap.isOpened()):
-            print('Trying to initialize turret cap...')
+            logging.info('Trying to initialize turret cap...')
 
             if self.jetson:
                 self.cap = cv2.VideoCapture('/dev/cam/turret', cv2.CAP_V4L)
