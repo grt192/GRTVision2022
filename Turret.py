@@ -129,6 +129,18 @@ class Turret:
                 if aspect_ratio < 1.5 or aspect_ratio > 4.5:
                     continue
 
+                frame_h, frame_w, _ = frame.shape
+
+                print('0.01 - 0.02 for w/frame_w', w/frame_w)
+                print('0.04 to 0.10 for h/frame_h', h/frame_h)
+                # Is the width of the tape too large or too small?
+                # (less than 1% of total width or greater than 2% of total width)?
+                if w > 0.03 * frame_w or w < 0.005 * frame_w:
+                    continue
+
+                if h > 0.15 * frame_h or h < 0.03 * frame_h:
+                    continue
+
                 # Else, we've found a good contour!
                 filtered_output.append(o)
 

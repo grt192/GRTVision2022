@@ -6,6 +6,8 @@ import threading
 import socket
 import time
 import logging
+from logging.handlers import RotatingFileHandler
+import sys
 
 from GenericHTTPServer import start_http_server
 from TurretSource import TurretSource
@@ -29,14 +31,19 @@ class Main:
 
         intake_source: same as turret_source but for intake duh
         '''
-        logging.basicConfig(filename='print.log', level=logging.DEBUG)
+        # Logs to file
+        # logging.basicConfig(handlers=[RotatingFileHandler('print.log', maxBytes=10*1024)], level=logging.INFO)
+
+        # Logs to stdout (print)
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
         logging.info('Entered Main')
         # Initialize vision pipelines
         self.turret = Turret()
         self.intake = Intake()
 
         if jetson:
-            address = '10.1.92.94'
+            address = '10.1.92.12'
             ports = (5801, 5802)
         else:
             address = 'localhost'
