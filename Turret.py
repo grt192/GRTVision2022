@@ -24,7 +24,7 @@ class Turret:
                                         [0., 0., 1.]])
 
         # Vision constants
-        self.hsv_lower = np.array([36, 99, 20])
+        self.hsv_lower = np.array([36, 99, 80])
         self.hsv_upper = np.array([97, 255, 255])
 
         self.cam_center = None
