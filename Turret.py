@@ -157,17 +157,39 @@ class Turret:
                 # filtered_output.sort(key=lambda a: frame[a[1], a[2]][1], reverse=True)  # sort by saturavation value of center pixel, descending
                 final_contour = filtered_output[0]
 
-            if final_contour is not None:
+            # Store the second tape if detected
+            if len(filtered_output) > 1:
+                final_contour_2 = filtered_output[1]
+            else:
+                final_contour_2 = None
+
+            final_contour_pos = None
+
+            # If we have only one tape
+            if (final_contour is not None) and (final_contour_2 is None):
                 # Draw the bounding box
                 x, y, w, h = cv2.boundingRect(final_contour[0])
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
 
                 # print('x, y, w, h', x, y, w, h)
                 logging.info('area, fullness, aspect ratio, %s, %s, %s', final_contour[4], final_contour[4] / (w * h), h / w)
 
                 # Draw contour to analyze in blue (ideally the middle tape)
                 final_contour_pos = (final_contour[1], final_contour[2])
+
+            # If we have two tapes to average out
+            if (final_contour is not None) and (final_contour_2 is not None):
+                # Find the two bounding boxes and draw them
+                x1, y1, w1, h1 = cv2.boundingRect(final_contour[0])
+                x2, y2, w2, h2 = cv2.boundingRect(final_contour_2[0])
+
+                cv2.rectangle(frame, (x1, y1), (x1 + w1, y1 + h1), (255, 0, 0), 2)
+                cv2.rectangle(frame, (x2, y2), (x2 + w2, y2 + h2), (255, 0, 0), 2)
+
+                # Calculate the final contour position (average of x and y)
+                final_contour_pos = (int((final_contour[1] + final_contour_2[1]) / 2), int((final_contour[2] + final_contour_2[2]) / 2))
+
+            if final_contour_pos is not None:
                 cv2.circle(frame, final_contour_pos, 5, (255, 0, 0), 10)  # Blue
 
                 # (NOT USED) Use interpolation to calculate distance
@@ -187,7 +209,7 @@ class Turret:
 
                 temp_output_data = (turret_vision_status, turret_theta, hub_distance)
 
-            # ax, d = self.get_ball_values_calib(frame, largest_cnt_pos)
+                # ax, d = self.get_ball_values_calib(frame, largest_cnt_pos)
 
         # Copy to the output frame
         # frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
@@ -302,71 +324,7 @@ class Turret:
         undist_center = out_pt[0, 0]
 
         return undist_center
-    '''
-    def get_ball_values_calib(self, frame, center):
-        """Calculate the angle and distance from the camera to the center point of the robot
-        This routine uses the cameraMatrix from the calibration to convert to normalized coordinates"""
-        # Everything's in radians ig. Except for print statements
 
-        # Swap target x and target y to account for hub being rotated 90
-        tx = center[1]
-        ty = center[0]
-
-        h, w, _ = frame.shape
-        cx = h / 2.0 + 0.5
-        cy = w / 2.0 + 0.5
-
-
-        # Swap fx and fy, cx and cy of the camera matrix
-        # [[fx, 0, cx]
-        #  [0, fy, cy]
-        #  [0, 0, 1]]
-        camera_mtx_rot = np.array([[679.81937442, 0., 202.55395243],
-                                    [0., 681.12589498, 341.75575426],
-                                    [0., 0., 1.]])
-
-        logging.info('tx, ty', tx, ty)
-        logging.info('cx, cy', camera_mtx_rot[0, 2], camera_mtx_rot[1, 2])
-        logging.info('cx, cy', cx, cy)
-
-        self.target_height = 8 * 12 + 8  # inches
-        self.camera_height = 28  # inches
-        self.tilt_angle = math.radians(50)  # of camera
-
-        cv2.circle(frame, (int(ty), int(tx)), 5, (255, 0, 0)) # blue
-        cv2.circle(frame, (int(camera_mtx_rot[1, 2]), int(camera_mtx_rot[0, 2])), 5, (0, 255, 0))  # green
-        cv2.circle(frame, (int(cy), int(cx)), 5, (0, 0, 255))  # red
-
-        # x prime (along yaw to the hub. yes, yaw)
-        # x_prime = (tx - camera_mtx_rot[0, 2]) / camera_mtx_rot[0, 0]
-        # y (pitch to the hub)
-        # y_prime = -(ty - camera_mtx_rot[1, 2]) / camera_mtx_rot[1, 1]
-
-        # x prime (along yaw to the hub. yes, yaw)
-        x_prime = (tx - cx) / camera_mtx_rot[0, 0]
-        # y (pitch to the hub)
-        logging.info('ty, cy, camera_mtx[1, 1]', ty, cy, camera_mtx_rot[1,1])
-        y_prime = -(ty - cy) / camera_mtx_rot[1, 1]
-
-        logging.info('x prime, y prime', x_prime, y_prime)
-
-        # now have all pieces to convert to angle:
-        ax = math.atan2(x_prime, 1.0)  # x horizontal angle (but actually yaw to hub)
-
-        # naive expression
-        # ay = math.atan2(y_prime, 1.0)  # y vertical angle (but actually pitch to the hub)
-
-        # corrected expression.
-        # As horizontal angle gets larger, real vertical angle gets a little smaller
-        ay = math.atan2(y_prime * math.cos(ax), 1.0)     # vertical angle
-
-        logging.info('ax, ay', math.degrees(ax), math.degrees(ay))
-
-        # now use the x and y angles to calculate the distance to the target:
-        d = (self.target_height - self.camera_height) / math.tan(self.tilt_angle + ay)    # distance to the target
-        logging.info('d', d)
-        return ax, d    # return angle to target (pitch) and distance
-    '''
 
 # Pulled from imutils package definition
 def grab_contours(cnts):
