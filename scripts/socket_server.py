@@ -5,6 +5,7 @@ PORT = 1337        # Port to listen on (non-privileged ports are > 1023)
 
 while True:
     try:
+        print('Attempting to connect')
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
             s.listen()
