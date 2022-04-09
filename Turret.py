@@ -131,8 +131,8 @@ class Turret:
 
                 frame_h, frame_w, _ = frame.shape
 
-                print('0.01 - 0.02 for w/frame_w', w/frame_w)
-                print('0.04 to 0.10 for h/frame_h', h/frame_h)
+                # print('0.01 - 0.02 for w/frame_w', w/frame_w)
+                # print('0.04 to 0.10 for h/frame_h', h/frame_h)
                 # Is the width of the tape too large or too small?
                 # (less than 1% of total width or greater than 2% of total width)?
                 if w > 0.03 * frame_w or w < 0.005 * frame_w:
@@ -172,7 +172,7 @@ class Turret:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
                 # print('x, y, w, h', x, y, w, h)
-                logging.info('area, fullness, aspect ratio, %s, %s, %s', final_contour[4], final_contour[4] / (w * h), h / w)
+                # logging.info('area, fullness, aspect ratio, %s, %s, %s', final_contour[4], final_contour[4] / (w * h), h / w)
 
                 # Draw contour to analyze in blue (ideally the middle tape)
                 final_contour_pos = (final_contour[1], final_contour[2])
@@ -310,7 +310,7 @@ class Turret:
         d += hub_diameter / 2.0
         # account for the consistent -20% error
         d *= 100 / 80.0
-        logging.info('using fov, ax, ay, d, %f, %f, %f', math.degrees(ax), math.degrees(ay), d)
+        # logging.info('using fov, ax, ay, d, %f, %f, %f', math.degrees(ax), math.degrees(ay), d)
 
         return ay, d    # return horizontal angle to target and distance
 
