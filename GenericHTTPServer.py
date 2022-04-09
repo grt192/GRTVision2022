@@ -58,9 +58,11 @@ class GenericCamHandler(BaseHTTPRequestHandler):
 
             while True:
                 try:
+                    '''
                     # Get the frame and process it
                     self.frame = self.frame_source.get_frame()
                     self.pipeline.process(self.frame)
+                    '''
 
                     for output_frame in self.pipeline.get_output_frames():
                         # Stream the frame

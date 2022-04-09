@@ -49,15 +49,24 @@ class Main:
             address = 'localhost'
             ports = (8081, 8082)
 
+        # Save flag variables
         self.connect_socket = connect_socket
         self.jetson = jetson
 
+        # Instantiate turret and intake source objects
+        self.turret_source = TurretSource(jetson) if turret_source is None else turret_source
+        self.intake_source = IntakeSource(jetson) if intake_source is None else intake_source
+
         # Start threads
         logging.info('Starting threads...')
-        turret_thread = threading.Thread(target=start_http_server, args=(self.turret, (TurretSource(jetson) if turret_source is None else turret_source), address, ports[0]))
-        intake_thread = threading.Thread(target=start_http_server, args=(self.intake, (IntakeSource(jetson) if intake_source is None else intake_source), address, ports[1]))
+        turret_thread = threading.Thread(target=start_http_server, args=(self.turret, self.turret_source, address, ports[0]))
+        intake_thread = threading.Thread(target=start_http_server, args=(self.intake, self.intake_source, address, ports[1]))
         turret_thread.start()
         intake_thread.start()
+
+        # Start vision pipeline threads
+        turret_vision_thread = threading.Thread(target=self.run_pipelines)
+        turret_vision_thread.start()
 
         # Run the main code
         self.run()
@@ -100,6 +109,14 @@ class Main:
             while True:
                 output_data = self.turret.get_output_values() + self.intake.get_output_values()
                 # print(str(output_data))
+
+    # Continually process frames and run vision pipelines
+    # Used in thread
+    def run_pipelines(self):
+        while True:
+            # Run turret pipeline
+            self.turret_frame = self.turret_source.get_frame()  # gets frame (put in allocated turret_frame var)
+            self.turret.process(self.turret_frame)  # process frame
 
 
 if __name__ == '__main__':

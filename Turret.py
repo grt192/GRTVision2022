@@ -24,7 +24,7 @@ class Turret:
                                         [0., 0., 1.]])
 
         # Vision constants
-        self.hsv_lower = np.array([36, 99, 80])
+        self.hsv_lower = np.array([36, 99, 80])  # 62]) 62 for the captured testing images, 80 for field hsv filter
         self.hsv_upper = np.array([97, 255, 255])
 
         self.cam_center = None
