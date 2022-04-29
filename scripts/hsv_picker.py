@@ -8,10 +8,14 @@ import cv2
 import numpy as np
 import datetime
 
+# Constants for HSV
+# Hue: [0, 180)
 hue_bound = 180
+# Saturation and value: [0, 255)
 sat_bound = 255
 val_bound = 255
 
+# Tolerance - how much to add plus/minus from the middle value
 hue_tolerance = 10
 sat_tolerance = 10
 val_tolerance = 40
@@ -47,7 +51,7 @@ def pick_color(event, x, y, flags, param):
         cv2.imshow("Mask", image_mask)
 
 
-file_path = '../images_2/image_1.png'
+file_path = '../images_2/04.png'
 image_src = cv2.imread(file_path)
 cv2.imshow("BGR", image_src)
 

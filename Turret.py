@@ -24,8 +24,12 @@ class Turret:
                                         [0., 0., 1.]])
 
         # Vision constants
-        self.hsv_lower = np.array([36, 99, 80])  # 62]) 62 for the captured testing images, 80 for field hsv filter
-        self.hsv_upper = np.array([97, 255, 255])
+        # self.hsv_lower = np.array([36, 99, 80])  # 62]) 62 for the captured testing images, 80 for field hsv filter
+        # self.hsv_upper = np.array([97, 255, 255])
+
+        # Set B of HSV ranges
+        self.hsv_lower = np.array([50, 33, 175])
+        self.hsv_upper = np.array([106, 255, 255])
 
         self.cam_center = None
 
@@ -111,7 +115,8 @@ class Turret:
 
                 x, y, w, h = cv2.boundingRect(o[0])
                 # Draw bounding rectangles (1st round of filtering)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 127, 255), 1)  # orange
+                # Commented out to save time
+                # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 127, 255), 1)  # orange
 
                 # print('x, y, w, h', x, y, w, h)
                 # print(o[4], o[4] / (w * h), h / w)
@@ -151,13 +156,13 @@ class Turret:
 
             # no need to sort; it's already in descending order by area
             # filtered_output.sort(key=lambda a: a[4], reverse=True)
+
+            # Grab the final contour (the supposed hub)
             final_contour = None
             if len(filtered_output) > 0:
-
-                # filtered_output.sort(key=lambda a: frame[a[1], a[2]][1], reverse=True)  # sort by saturavation value of center pixel, descending
                 final_contour = filtered_output[0]
 
-            # Store the second tape if detected
+            # Store a second tape if detected
             if len(filtered_output) > 1:
                 final_contour_2 = filtered_output[1]
             else:
@@ -209,8 +214,6 @@ class Turret:
 
                 temp_output_data = (turret_vision_status, turret_theta, hub_distance)
 
-                # ax, d = self.get_ball_values_calib(frame, largest_cnt_pos)
-
         # Copy to the output frame
         # frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
         self.output_frame = np.copy(frame)
@@ -236,20 +239,6 @@ class Turret:
     def set_hsv(self, new_lower, new_upper):
         self.hsv_lower = new_lower
         self.hsv_upper = new_upper
-
-    def get_ball_values_from_tvec(self, tvec):
-        """ Ideally returns a distanc and pitch angle to target (ie. angle that the turret needs to rotate) but more
-        extensive testing is needed. Seems to produce error just like the matrix multiplication operation does."""
-        y = tvec[0][1][0]
-        z = tvec[0][2][0]
-
-        # Pythagorean theorem using y and z position (not x and z because target is rotated 90)
-        a1 = math.atan2(y, z)
-        d = math.sqrt(y ** 2 + z ** 2)
-
-        logging.info('a1, d, %f, %f', a1, d)
-
-        return a1, d
 
     def get_ball_values(self, frame, center):
         '''Calculate the angle and distance from the camera to the center point of the robot
