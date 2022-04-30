@@ -8,6 +8,7 @@ import time
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
+import time
 
 from GenericHTTPServer import start_http_server
 from TurretSource import TurretSource
@@ -113,10 +114,28 @@ class Main:
     # Continually process frames and run vision pipelines
     # Used in thread
     def run_pipelines(self):
+        # Keep track of sum and N to take average
+        count_sum = 0
+        count_num = 0
+
+        count = 0
+        start_time = time.time()  # Record time in seconds
+
         while True:
             # Run turret pipeline
             self.turret_frame = self.turret_source.get_frame()  # gets frame (put in allocated turret_frame var)
             self.turret.process(self.turret_frame)  # process frame
+            count += 1
+
+            if time.time() >= start_time + 1:
+                count_sum += count
+                count_num += 1
+
+                logging.info(str(count) + ' times/sec, avg: ' + str(int(count_sum / count_num)) + ' times/sec')
+
+                # Reset vars
+                start_time = time.time()
+                count = 0
 
 
 if __name__ == '__main__':
