@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
-from Turret import Turret
-from Intake import Intake
+from pipelines.Turret import Turret
+from pipelines.Intake import Intake
 import threading
 import socket
 import time
 import logging
-from logging.handlers import RotatingFileHandler
 import sys
 
 from GenericHTTPServer import start_http_server
-from TurretSource import TurretSource
-from IntakeSource import IntakeSource
-from StaticImageSource import StaticImageSource
+from sources.TurretSource import TurretSource
+from sources.IntakeSource import IntakeSource
+from sources.StaticImageSource import StaticImageSource
 
 
 class Main:
@@ -120,6 +119,6 @@ class Main:
 
 
 if __name__ == '__main__':
-    # Main(jetson=False, connect_socket=False)
-    Main(jetson=False, connect_socket=True, turret_source=StaticImageSource('images_2/image_1.png'),
-         intake_source=StaticImageSource('images/106.25_1.0.png'))
+    Main(jetson=False, connect_socket=False)
+    # Main(jetson=False, connect_socket=True, turret_source=StaticImageSource('images_2/image_1.png'),
+    #      intake_source=StaticImageSource('images/106.25_1.0.png'))

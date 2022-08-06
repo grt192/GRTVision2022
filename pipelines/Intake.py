@@ -1,5 +1,5 @@
 import numpy as np
-from Blob import BlobDetector
+from pipelines.Blob import BlobDetector
 import Utility
 import numpy as np
 
